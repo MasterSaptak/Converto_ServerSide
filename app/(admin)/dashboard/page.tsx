@@ -48,23 +48,23 @@ function SystemActivityFeed() {
   }, [])
 
   return (
-    <div className="brutal-card bg-white p-6 space-y-4">
-      <div className="flex items-center justify-between border-b-4 border-black pb-4">
+    <div className="brutal-card p-6 space-y-4">
+      <div className="flex items-center justify-between border-b-4 border-border pb-4">
         <h3 className="font-black text-xl uppercase tracking-tight">System Activity</h3>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-black uppercase tracking-widest text-black/50">Live</span>
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse border border-black"></div>
+          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Live</span>
+          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse border border-border"></div>
         </div>
       </div>
       <div className="space-y-4">
         {activities.map((activity) => (
           <div key={activity.id} className="flex gap-3 items-start animate-in fade-in slide-in-from-top-2">
-            <div className="p-2 border-2 border-black bg-accent shrink-0">
-              <activity.icon className="w-4 h-4 text-black" />
+            <div className="p-2 border-2 border-border bg-accent shrink-0">
+              <activity.icon className="w-4 h-4 text-accent-foreground" />
             </div>
             <div>
               <p className="text-sm font-bold">{activity.message}</p>
-              <p className="text-[10px] font-black uppercase text-black/50 tracking-widest">{activity.time}</p>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{activity.time}</p>
             </div>
           </div>
         ))}
@@ -88,7 +88,7 @@ export default function DashboardPage() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
           <h2 className="text-4xl font-black tracking-tight uppercase">Dashboard</h2>
-          <p className="text-black/60 font-bold uppercase tracking-widest text-xs mt-1">
+          <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs mt-1">
             {dateRange?.from ? `Metrics for Selected Period` : 'Operational Overview & Real-time Metrics'}
           </p>
         </div>
@@ -97,7 +97,7 @@ export default function DashboardPage() {
           <DateRangePicker onRangeChange={setDateRange} />
           
           <div className="flex items-center gap-2">
-            <button className="brutal-button bg-white flex items-center gap-2">
+            <button className="brutal-button bg-card flex items-center gap-2">
               <Download className="w-4 h-4" />
               Report
             </button>
@@ -114,18 +114,18 @@ export default function DashboardPage() {
         {stats.map((stat) => (
           <div key={stat.name} className="brutal-card p-6 flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <div className={cn("p-2 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]", stat.color)}>
-                <stat.icon className="w-6 h-6 text-black" />
+              <div className={cn("p-2 border-2 border-border shadow-[2px_2px_0px_0px_var(--color-border)]", stat.color)}>
+                <stat.icon className="w-6 h-6 text-foreground" />
               </div>
               <span className={cn(
-                "text-xs font-black px-2 py-1 border-2 border-black",
+                "text-xs font-black px-2 py-1 border-2 border-border text-foreground",
                 stat.change.startsWith('+') ? "bg-green-400" : "bg-red-400"
               )}>
                 {stat.change}
               </span>
             </div>
             <div>
-              <p className="text-xs font-black uppercase text-black/50 tracking-widest">{stat.name}</p>
+              <p className="text-xs font-black uppercase text-muted-foreground tracking-widest">{stat.name}</p>
               <p className="text-3xl font-black">{stat.value}</p>
             </div>
           </div>
@@ -134,15 +134,15 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Activity */}
-        <div className="lg:col-span-2 brutal-card bg-white overflow-hidden flex flex-col">
-          <div className="p-6 border-b-4 border-black flex items-center justify-between bg-white">
+        <div className="lg:col-span-2 brutal-card bg-card overflow-hidden flex flex-col">
+          <div className="p-6 border-b-4 border-border flex items-center justify-between bg-card">
             <h3 className="font-black text-xl uppercase tracking-tight">Recent Requests</h3>
             <button className="text-sm font-black underline decoration-2 underline-offset-4 hover:text-accent transition-colors">View All</button>
           </div>
           <div className="flex-1">
              <table className="w-full text-left">
                <thead>
-                 <tr className="border-b-4 border-black bg-slate-50">
+                 <tr className="border-b-4 border-border bg-muted">
                    <th className="p-4 font-black uppercase text-xs">Customer</th>
                    <th className="p-4 font-black uppercase text-xs">Type</th>
                    <th className="p-4 font-black uppercase text-xs">Status</th>
@@ -152,27 +152,27 @@ export default function DashboardPage() {
                </thead>
                <tbody>
                  {[1, 2, 3, 4, 5].map((i) => (
-                   <tr key={i} className="border-b-2 border-black last:border-0 hover:bg-slate-50 transition-colors">
+                   <tr key={i} className="border-b-2 border-border last:border-0 hover:bg-muted/50 transition-colors">
                      <td className="p-4">
                        <div className="flex items-center gap-3">
-                         <div className="w-8 h-8 bg-accent border-2 border-black font-black flex items-center justify-center text-xs">
+                         <div className="w-8 h-8 bg-accent border-2 border-border font-black flex items-center justify-center text-xs text-accent-foreground">
                            JD
                          </div>
                          <span className="font-bold">John Doe</span>
                        </div>
                      </td>
                      <td className="p-4">
-                       <span className="font-bold px-2 py-1 bg-blue-100 border-2 border-black text-[10px] uppercase">Exchange</span>
+                       <span className="font-bold px-2 py-1 bg-blue-100 dark:bg-blue-900 border-2 border-border text-[10px] uppercase">Exchange</span>
                      </td>
                      <td className="p-4">
                         <span className="flex items-center gap-2">
-                           <span className="w-2 h-2 rounded-full bg-yellow-400 border border-black"></span>
+                           <span className="w-2 h-2 rounded-full bg-yellow-400 border border-border"></span>
                            <span className="font-bold text-sm">Processing</span>
                         </span>
                      </td>
-                     <td className="p-4 font-bold text-sm text-black/50">2 mins ago</td>
+                     <td className="p-4 font-bold text-sm text-muted-foreground">2 mins ago</td>
                      <td className="p-4 text-right">
-                       <button className="p-1 border-2 border-black hover:bg-accent transition-all">
+                       <button className="p-1 border-2 border-border hover:bg-accent hover:text-accent-foreground transition-all">
                          <ArrowUpRight className="w-4 h-4" />
                        </button>
                      </td>
@@ -186,35 +186,35 @@ export default function DashboardPage() {
         {/* Right Column: Finance & Activity */}
         <div className="flex flex-col gap-8">
           {/* Finance Snapshot */}
-          <div className="brutal-card bg-black text-white p-6 space-y-6">
+          <div className="brutal-card bg-primary text-primary-foreground p-6 space-y-6">
             <div className="flex items-center justify-between">
                <h3 className="font-black text-xl uppercase tracking-tight">Finance Overview</h3>
                <Activity className="w-6 h-6 text-accent" />
             </div>
             
             <div className="space-y-4">
-              <div className="p-4 border-2 border-white/20 bg-white/5 space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/50">Total Revenue</p>
+              <div className="p-4 border-2 border-primary-foreground/20 bg-primary-foreground/5 space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary-foreground/50">Total Revenue</p>
                 <p className="text-3xl font-black text-accent">$128,450.00</p>
               </div>
               
-              <div className="p-4 border-2 border-white/20 bg-white/5 space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/50">Wallet Balances</p>
+              <div className="p-4 border-2 border-primary-foreground/20 bg-primary-foreground/5 space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary-foreground/50">Wallet Balances</p>
                 <p className="text-3xl font-black">$542,100.00</p>
               </div>
             </div>
 
-            <div className="pt-4 border-t-2 border-white/20">
+            <div className="pt-4 border-t-2 border-primary-foreground/20">
                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-white/70">Monthly Target</span>
+                  <span className="text-xs font-bold text-primary-foreground/70">Monthly Target</span>
                   <span className="text-xs font-bold text-accent">85%</span>
                </div>
-               <div className="h-4 border-2 border-white bg-white/10 relative overflow-hidden">
-                  <div className="absolute inset-y-0 left-0 bg-accent w-[85%] border-r-2 border-black"></div>
+               <div className="h-4 border-2 border-primary-foreground bg-primary-foreground/10 relative overflow-hidden">
+                  <div className="absolute inset-y-0 left-0 bg-accent w-[85%] border-r-2 border-primary"></div>
                </div>
             </div>
 
-            <button className="w-full py-4 bg-accent text-black font-black uppercase tracking-widest text-sm border-2 border-white shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all">
+            <button className="w-full py-4 bg-accent text-accent-foreground font-black uppercase tracking-widest text-sm border-2 border-primary-foreground shadow-[4px_4px_0px_0px_var(--color-primary-foreground)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all">
               Full Audit
             </button>
           </div>

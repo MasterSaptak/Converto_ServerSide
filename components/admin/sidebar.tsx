@@ -37,10 +37,10 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="flex flex-col h-full bg-white border-r-4 border-black w-64">
-      <div className="p-6 border-b-4 border-black bg-accent">
+    <div className="flex flex-col h-full bg-card border-r-4 border-border w-64">
+      <div className="p-6 border-b-4 border-border bg-accent text-accent-foreground">
         <h1 className="text-2xl font-black tracking-tighter uppercase">Converto</h1>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-black/60">Admin ERP v1.0</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Admin ERP v1.0</p>
       </div>
 
       <nav className="flex-1 overflow-y-auto p-4 space-y-2">
@@ -53,8 +53,8 @@ export function Sidebar() {
               className={cn(
                 "flex items-center gap-3 px-4 py-3 font-bold transition-all border-2 border-transparent",
                 isActive 
-                  ? "bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" 
-                  : "hover:bg-accent hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-black/70 hover:text-black"
+                  ? "bg-foreground text-background border-border shadow-[4px_4px_0px_0px_var(--color-border)]" 
+                  : "hover:bg-accent hover:border-border hover:shadow-[4px_4px_0px_0px_var(--color-border)] text-foreground/70 hover:text-foreground hover:text-accent-foreground"
               )}
             >
               <item.icon className="w-5 h-5" />
@@ -64,7 +64,7 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="p-4 border-t-4 border-black">
+      <div className="p-4 border-t-4 border-border">
         <button 
           onClick={async () => {
             document.cookie = "demo_auth=; path=/; max-age=0"
@@ -75,7 +75,7 @@ export function Sidebar() {
             }
             window.location.href = '/'
           }}
-          className="flex items-center gap-3 px-4 py-3 w-full font-bold text-red-600 hover:bg-red-50 transition-all border-2 border-transparent hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+          className="flex items-center gap-3 px-4 py-3 w-full font-bold text-red-600 dark:text-red-400 hover:bg-destructive/10 transition-all border-2 border-transparent hover:border-border hover:shadow-[4px_4px_0px_0px_var(--color-border)]"
         >
           <LogOut className="w-5 h-5" />
           Sign Out

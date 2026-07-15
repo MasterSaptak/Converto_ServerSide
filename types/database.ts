@@ -365,6 +365,8 @@ export interface Notification {
   title: string;
   message: string;
   action_url: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
   icon: string | null;
   metadata: Record<string, unknown>;
   is_read: boolean;

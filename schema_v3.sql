@@ -486,6 +486,8 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   title TEXT NOT NULL,
   message TEXT NOT NULL,
   action_url TEXT,
+  entity_type TEXT,
+  entity_id UUID,
   icon TEXT,
   metadata JSONB DEFAULT '{}',
   is_read BOOLEAN DEFAULT FALSE,

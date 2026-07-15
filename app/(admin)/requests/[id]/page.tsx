@@ -5,6 +5,7 @@ import { ArrowLeft, Save, ArrowUpRight } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import type { ServiceRequest } from '@/types/database'
 import { revalidatePath } from 'next/cache'
+import { NotificationService } from '@/lib/services/notifications'
 
 const statusStyles: Record<string, string> = {
   'Submitted': 'bg-blue-100 text-blue-800 border-blue-400',
@@ -21,7 +22,7 @@ async function updateRequestStatus(formData: FormData) {
   const id = formData.get('id') as string
   const status = formData.get('status') as string
   
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -33,10 +34,23 @@ async function updateRequestStatus(formData: FormData) {
     }
   )
 
-  await supabase
+  // Get current request to check status change and get profile_id
+  const { data: currentReq } = await supabase
     .from('service_requests')
-    .update({ status, updated_at: new Date().toISOString() })
+    .select('status, profile_id')
     .eq('id', id)
+    .single();
+
+  if (currentReq && currentReq.status !== status) {
+    await supabase
+      .from('service_requests')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', id)
+    
+    // Dispatch notification
+    const notificationService = new NotificationService(supabase);
+    await notificationService.notifyRequestUpdate(currentReq.profile_id, id, status);
+  }
 
   revalidatePath(`/requests/${id}`)
   revalidatePath('/requests')
@@ -44,7 +58,7 @@ async function updateRequestStatus(formData: FormData) {
 
 export default async function RequestDetailsPage({ params }: { params: { id: string } }) {
   const { id } = await params;
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -217,7 +231,5 @@ export default async function RequestDetailsPage({ params }: { params: { id: str
 
       </div>
     </div>
-  )
-}
   )
 }
