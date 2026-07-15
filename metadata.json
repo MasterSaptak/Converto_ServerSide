@@ -1,0 +1,6 @@
+{
+  "name": "Converto Admin ERP",
+  "description": "Operations Dashboard for CONVERTO business operations and request management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
