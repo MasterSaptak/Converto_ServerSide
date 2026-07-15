@@ -56,7 +56,7 @@ async function updateRequestStatus(formData: FormData) {
   revalidatePath('/requests')
 }
 
-export default async function RequestDetailsPage({ params }: { params: { id: string } }) {
+export default async function RequestDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const cookieStore = await cookies()
   const supabase = createServerClient(
