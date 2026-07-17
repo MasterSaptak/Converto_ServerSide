@@ -674,7 +674,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.service_requests;
 INSERT INTO public.services (name, slug, icon, description, requires_quote, supports_wallet) VALUES
   ('Currency Exchange', 'exchange', 'ArrowLeftRight', 'Exchange currencies at competitive rates', TRUE, TRUE),
   ('Buy For Me', 'buy_for_me', 'ShoppingBag', 'We purchase products on your behalf from international stores', TRUE, TRUE),
-  ('Ticket Booking', 'ticket', 'Ticket', 'Book event tickets, flights, and travel arrangements', TRUE, TRUE),
+  ('Ticket Booking', 'tickets', 'Ticket', 'Book event tickets, flights, and travel arrangements', TRUE, TRUE),
   ('Education Payments', 'education', 'GraduationCap', 'Pay tuition and education fees internationally', TRUE, TRUE),
   ('Global Payments', 'global_payments', 'Globe', 'Send payments to anyone, anywhere in the world', TRUE, TRUE)
 ON CONFLICT (slug) DO NOTHING;

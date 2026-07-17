@@ -26,12 +26,19 @@ export interface Service {
   id: string;
   name: string;
   slug: string;
+  code: string | null;
   icon: string | null;
   description: string | null;
+  color: string | null;
+  route: string | null;
+  sort_order: number;
   is_active: boolean;
   requires_quote: boolean;
+  requires_documents: boolean;
+  requires_payment: boolean;
   supports_wallet: boolean;
   config: Record<string, unknown>;
+  organization_id: string | null;
   created_at: string;
 }
 
@@ -73,10 +80,20 @@ export interface ServiceRequest {
   priority: RequestPriority;
   amount: number | null;
   currency: string | null;
+  // Pricing Engine
+  subtotal: number | null;
+  service_fee: number | null;
+  exchange_fee: number | null;
+  discount: number | null;
+  tax: number | null;
+  gateway_fee: number | null;
+  total: number | null;
+  // Assignment & References
   assigned_staff_id: string | null;
   quote_id: string | null;
   metadata: Record<string, unknown>;
   notes: string | null;
+  organization_id: string | null;
   created_at: string;
   updated_at: string;
   // Joined relations
@@ -84,6 +101,10 @@ export interface ServiceRequest {
   service?: Service;
   assigned_staff?: StaffWithProfile;
   quote?: Quote;
+  assignments?: OrderAssignment[];
+  status_history?: OrderStatusHistory[];
+  events?: OrderEvent[];
+  documents?: Document[];
 }
 
 // ── Service-Specific Metadata Shapes ──────────────────
@@ -470,6 +491,206 @@ export interface AiAction {
   created_at: string;
 }
 
+// ── Order Status History ──────────────────────────────
+export interface OrderStatusHistory {
+  id: string;
+  order_id: string;
+  old_status: string | null;
+  new_status: string;
+  changed_by: string | null;
+  remarks: string | null;
+  organization_id: string | null;
+  created_at: string;
+  // Joined relations
+  changed_by_profile?: Profile;
+}
+
+// ── Order Events (Timeline) ──────────────────────────
+export type OrderEventActorType = 'customer' | 'staff' | 'system' | 'ai';
+
+export interface OrderEvent {
+  id: string;
+  order_id: string;
+  event: string;
+  actor: string | null;
+  actor_type: OrderEventActorType;
+  metadata: Record<string, unknown>;
+  is_customer_visible: boolean;
+  organization_id: string | null;
+  created_at: string;
+  // Joined relations
+  actor_profile?: Profile;
+}
+
+// ── Order Assignments ─────────────────────────────────
+export type AssignmentRole =
+  | 'assigned'
+  | 'relationship_manager'
+  | 'finance'
+  | 'compliance'
+  | 'support'
+  | 'supervisor';
+
+export interface OrderAssignment {
+  id: string;
+  order_id: string;
+  staff_id: string;
+  role: AssignmentRole;
+  is_primary: boolean;
+  organization_id: string | null;
+  assigned_at: string;
+  // Joined relations
+  staff?: StaffWithProfile;
+}
+
+// ── Documents ─────────────────────────────────────────
+export type DocumentVerificationStatus = 'pending' | 'verified' | 'rejected';
+
+export interface DocumentType {
+  id: string;
+  service_id: string | null;
+  name: string;
+  description: string | null;
+  required: boolean;
+  allowed_extensions: string[];
+  max_size_mb: number;
+  sort_order: number;
+  organization_id: string | null;
+  created_at: string;
+}
+
+export interface Document {
+  id: string;
+  order_id: string | null;
+  customer_id: string;
+  document_type_id: string | null;
+  type: string;
+  name: string;
+  url: string;
+  file_size: number | null;
+  mime_type: string | null;
+  verified: boolean;
+  verified_by: string | null;
+  verified_at: string | null;
+  rejection_reason: string | null;
+  organization_id: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined relations
+  document_type?: DocumentType;
+  verified_by_staff?: StaffWithProfile;
+}
+
+// ── Service Workflows ─────────────────────────────────
+export interface ServiceWorkflow {
+  id: string;
+  service_id: string;
+  step_name: string;
+  step_key: string;
+  step_order: number;
+  color: string;
+  icon: string | null;
+  is_initial: boolean;
+  is_final: boolean;
+  can_customer_view: boolean;
+  requires_staff: boolean;
+  requires_documents: boolean;
+  allowed_next_steps: string[];
+  organization_id: string | null;
+  created_at: string;
+}
+
+// ── Pricing Rules ─────────────────────────────────────
+export type PricingFeeType = 'percentage' | 'fixed' | 'tiered';
+
+export interface PricingRule {
+  id: string;
+  service_id: string;
+  name: string;
+  currency: string | null;
+  fee_type: PricingFeeType;
+  percentage: number;
+  fixed_fee: number;
+  minimum: number;
+  maximum: number | null;
+  priority: number;
+  is_active: boolean;
+  conditions: Record<string, unknown>;
+  organization_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── Service Fields (Dynamic Forms) ────────────────────
+export type ServiceFieldType =
+  | 'text'
+  | 'number'
+  | 'select'
+  | 'date'
+  | 'file'
+  | 'textarea'
+  | 'currency'
+  | 'url'
+  | 'email'
+  | 'phone';
+
+export interface ServiceFieldOption {
+  value: string;
+  label: string;
+}
+
+export interface ServiceField {
+  id: string;
+  service_id: string;
+  field_key: string;
+  label: string;
+  type: ServiceFieldType;
+  required: boolean;
+  placeholder: string | null;
+  help_text: string | null;
+  default_value: string | null;
+  validation: Record<string, unknown>;
+  options: ServiceFieldOption[];
+  position: number;
+  is_active: boolean;
+  group_name: string | null;
+  organization_id: string | null;
+  created_at: string;
+}
+
+// ── Feature Flags ─────────────────────────────────────
+export type FeatureFlagCategory = 'general' | 'module' | 'experimental' | 'beta';
+
+export interface FeatureFlag {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  enabled: boolean;
+  category: FeatureFlagCategory;
+  metadata: Record<string, unknown>;
+  organization_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── Dashboard Widgets ─────────────────────────────────
+export type WidgetSize = 'small' | 'medium' | 'large' | 'full';
+
+export interface DashboardWidget {
+  id: string;
+  title: string;
+  component: string;
+  description: string | null;
+  position: number;
+  size: WidgetSize;
+  visible_to_roles: string[];
+  config: Record<string, unknown>;
+  is_active: boolean;
+  organization_id: string | null;
+  created_at: string;
+}
+
 // ── Supabase Storage Paths ────────────────────────────
 export const STORAGE_BUCKETS = {
   AVATARS: 'avatars',
@@ -479,6 +700,7 @@ export const STORAGE_BUCKETS = {
   TICKETS: 'tickets',
   PASSPORTS: 'passports',
   RECEIPTS: 'receipts',
+  DOCUMENTS: 'documents',
   STAFF: 'staff',
   SYSTEM: 'system',
 } as const;

@@ -1,8 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark, .dark *));
 
 @theme inline {
     --font-heading: var(--font-sans);
@@ -124,6 +123,12 @@
 @layer components {
   .brutal-card {
     @apply bg-card border-2 border-border shadow-[4px_4px_0px_0px_var(--color-border)] transition-all hover:shadow-[2px_2px_0px_0px_var(--color-border)] hover:translate-x-[2px] hover:translate-y-[2px];
+  }
+  .brutal-card-static {
+    @apply bg-card border-2 border-border shadow-[4px_4px_0px_0px_var(--color-border)] transition-colors;
+  }
+  .brutal-card-compact {
+    @apply bg-card border-2 border-border shadow-[3px_3px_0px_0px_var(--color-border)] transition-colors;
   }
   .brutal-button {
     @apply bg-primary border-2 border-border text-primary-foreground font-bold px-4 py-2 shadow-[4px_4px_0px_0px_var(--color-border)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all;

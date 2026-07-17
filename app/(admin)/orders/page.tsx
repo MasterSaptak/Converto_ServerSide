@@ -30,7 +30,7 @@ const statusStyles: Record<string, string> = {
   'Rejected': 'bg-red-100 text-red-800 border-red-400',
 }
 
-export default async function RequestsPage() {
+export default async function OrdersPage() {
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -45,7 +45,7 @@ export default async function RequestsPage() {
     }
   )
 
-  const { data: requests } = await supabase
+  const { data: orders } = await supabase
     .from('service_requests')
     .select('*, profile:profiles(*), service:services(*)')
     .order('created_at', { ascending: false })
@@ -54,8 +54,8 @@ export default async function RequestsPage() {
     <div className="space-y-8 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-4xl font-black tracking-tight uppercase">Request Center</h2>
-          <p className="text-black/60 font-bold uppercase tracking-widest text-xs mt-1">Manage, Fulfill and Audit Customer Requests</p>
+          <h2 className="text-4xl font-black tracking-tight uppercase">Unified Orders</h2>
+          <p className="text-black/60 font-bold uppercase tracking-widest text-xs mt-1">Manage and track all customer orders across all modules</p>
         </div>
       </div>
 
@@ -66,14 +66,17 @@ export default async function RequestsPage() {
         </div>
         <div className="flex gap-4">
            <select className="brutal-input font-bold bg-white">
-             <option>All Types</option>
-             <option>Exchange</option>
+             <option>All Modules</option>
+             <option>Currency Exchange</option>
              <option>Buy For Me</option>
-             <option>Tickets</option>
+             <option>Ticket Booking</option>
+             <option>Education</option>
+             <option>Global Payments</option>
            </select>
            <select className="brutal-input font-bold bg-white">
              <option>All Statuses</option>
-             <option>Submitted</option>
+             <option>Draft</option>
+             <option>Awaiting Payment</option>
              <option>Processing</option>
              <option>Completed</option>
            </select>
@@ -90,7 +93,7 @@ export default async function RequestsPage() {
             <TableRow className="hover:bg-transparent">
               <TableHead className="p-4 font-black uppercase text-xs text-black">ID</TableHead>
               <TableHead className="p-4 font-black uppercase text-xs text-black">Customer</TableHead>
-              <TableHead className="p-4 font-black uppercase text-xs text-black">Type</TableHead>
+              <TableHead className="p-4 font-black uppercase text-xs text-black">Module</TableHead>
               <TableHead className="p-4 font-black uppercase text-xs text-black">Status</TableHead>
               <TableHead className="p-4 font-black uppercase text-xs text-black">Priority</TableHead>
               <TableHead className="p-4 font-black uppercase text-xs text-black">Amount</TableHead>
@@ -99,49 +102,49 @@ export default async function RequestsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {requests?.length === 0 ? (
+            {orders?.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="p-8 text-center font-bold uppercase opacity-50">
-                  No requests found
+                  No orders found
                 </TableCell>
               </TableRow>
-            ) : requests?.map((request: any) => (
-              <TableRow key={request.id} className="border-b-2 border-black hover:bg-slate-50 transition-colors group">
+            ) : orders?.map((order: any) => (
+              <TableRow key={order.id} className="border-b-2 border-black hover:bg-slate-50 transition-colors group">
                 <TableCell className="p-4 font-black font-mono text-xs">
-                  {request.id.split('-')[0]}...
+                  {order.id.split('-')[0]}...
                 </TableCell>
                 <TableCell className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-accent border-2 border-black font-black flex items-center justify-center text-xs">
-                      {request.profile?.full_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
+                      {order.profile?.full_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
                     </div>
-                    <span className="font-bold">{request.profile?.full_name || 'Unknown'}</span>
+                    <span className="font-bold">{order.profile?.full_name || 'Unknown'}</span>
                   </div>
                 </TableCell>
-                <TableCell className="p-4 font-bold uppercase text-[10px] tracking-widest">{request.service?.name}</TableCell>
+                <TableCell className="p-4 font-bold uppercase text-[10px] tracking-widest">{order.service?.name}</TableCell>
                 <TableCell className="p-4">
-                  <Badge variant="outline" className={cn("rounded-none border-2 font-black uppercase text-[10px]", statusStyles[request.status] || 'bg-slate-100')}>
-                    {request.status}
+                  <Badge variant="outline" className={cn("rounded-none border-2 font-black uppercase text-[10px]", statusStyles[order.status] || 'bg-slate-100')}>
+                    {order.status}
                   </Badge>
                 </TableCell>
                 <TableCell className="p-4">
                    <span className={cn(
                      "font-bold text-xs uppercase",
-                     request.priority === 'Urgent' ? "text-red-600" : 
-                     request.priority === 'High' ? "text-orange-600" : "text-black/60"
+                     order.priority === 'Urgent' ? "text-red-600" : 
+                     order.priority === 'High' ? "text-orange-600" : "text-black/60"
                    )}>
-                     {request.priority}
+                     {order.priority}
                    </span>
                 </TableCell>
                 <TableCell className="p-4 font-black font-mono">
-                  {request.amount ? `${request.amount.toLocaleString(undefined, {minimumFractionDigits: 2})} ${request.currency}` : 'N/A'}
+                  {order.amount ? `${order.amount.toLocaleString(undefined, {minimumFractionDigits: 2})} ${order.currency}` : 'N/A'}
                 </TableCell>
                 <TableCell className="p-4 font-bold text-sm text-black/50">
-                  {new Date(request.created_at).toLocaleDateString()}
+                  {new Date(order.created_at).toLocaleDateString()}
                 </TableCell>
                 <TableCell className="p-4 text-right">
                    <div className="flex items-center justify-end gap-2">
-                     <Link href={`/requests/${request.id}`} className="p-2 border-2 border-black hover:bg-accent transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] bg-white">
+                     <Link href={`/orders/${order.id}`} className="p-2 border-2 border-black hover:bg-accent transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] bg-white">
                         <ArrowUpRight className="w-4 h-4" />
                      </Link>
                      <DropdownMenu>
@@ -153,10 +156,10 @@ export default async function RequestsPage() {
                        </DropdownMenuTrigger>
                        <DropdownMenuContent align="end" className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-bold">
                          {/* @ts-expect-error asChild is missing from types */}
-                         <DropdownMenuItem asChild><Link href={`/requests/${request.id}`}>View Details</Link></DropdownMenuItem>
+                         <DropdownMenuItem asChild><Link href={`/orders/${order.id}`}>View Details</Link></DropdownMenuItem>
                          <DropdownMenuItem>Assign Staff</DropdownMenuItem>
-                         <DropdownMenuItem>Send Quote</DropdownMenuItem>
-                         <DropdownMenuItem className="text-red-600">Cancel Request</DropdownMenuItem>
+                         <DropdownMenuItem>View Timeline</DropdownMenuItem>
+                         <DropdownMenuItem className="text-red-600">Cancel Order</DropdownMenuItem>
                        </DropdownMenuContent>
                      </DropdownMenu>
                    </div>

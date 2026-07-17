@@ -100,8 +100,8 @@ export function Header() {
 
   return (
     <>
-      <header className="h-20 border-b-4 border-border bg-card flex items-center justify-between px-8 sticky top-0 z-30">
-        <div className="flex items-center gap-4 flex-1">
+      <header className="h-14 md:h-16 border-b-4 border-border bg-card flex items-center justify-between pl-14 pr-3 md:px-6 sticky top-0 z-30">
+        <div className="hidden md:flex items-center gap-4 flex-1">
           <div className="relative max-w-md w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <input 
@@ -111,8 +111,9 @@ export function Header() {
             />
           </div>
         </div>
+        <h1 className="md:hidden text-sm font-black uppercase tracking-wider text-foreground">Converto Ops</h1>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 md:gap-6">
           {mounted && (
             <button 
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

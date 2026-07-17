@@ -42,20 +42,22 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Allow access to login and auth routes without authentication
+  // Allow access to login, auth, and API routes without authentication redirect
   const isPublicPath =
     request.nextUrl.pathname.startsWith('/login') ||
     request.nextUrl.pathname.startsWith('/auth') ||
     request.nextUrl.pathname.startsWith('/unauthorized')
+    
+  const isApiRoute = request.nextUrl.pathname.startsWith('/api')
 
-  if (!user && !isPublicPath) {
+  if (!user && !isPublicPath && !isApiRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // If user is authenticated, check staff status
-  if (user && !isPublicPath) {
+  // If user is authenticated, check staff status for non-public, non-api routes
+  if (user && !isPublicPath && !isApiRoute) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('is_staff')

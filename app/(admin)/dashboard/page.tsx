@@ -1,225 +1,298 @@
-'use client'
-
-import * as React from 'react'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import Link from 'next/link'
 import { 
   ClipboardList, 
   RefreshCcw, 
   ShoppingBag, 
   Ticket, 
-  Users, 
   ArrowUpRight, 
-  TrendingUp, 
   DollarSign, 
   Activity,
   Download,
-  Plus,
-  Database,
-  Server,
-  ShieldCheck
+  GraduationCap,
+  Globe,
+  Users,
+  AlertCircle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { DateRangePicker } from '@/components/admin/date-range-picker'
+import { DashboardActivityFeed } from './components/activity-feed'
 
-function SystemActivityFeed() {
-  const [activities, setActivities] = React.useState([
-    { id: 1, type: 'database', message: 'User DB backup completed', time: 'Just now', icon: Database },
-    { id: 2, type: 'server', message: 'Server instance rescaled to 4 nodes', time: '2 mins ago', icon: Server },
-    { id: 3, type: 'auth', message: 'Admin login detected from new IP', time: '5 mins ago', icon: ShieldCheck },
-  ])
-
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      const newEvents = [
-        { type: 'database', message: 'Record sync successful', icon: Database },
-        { type: 'server', message: 'CPU utilization spike detected', icon: Server },
-        { type: 'auth', message: 'Token refresh issued', icon: ShieldCheck },
-        { type: 'api', message: 'Payment gateway ping OK', icon: Activity },
-      ]
-      const randomEvent = newEvents[Math.floor(Math.random() * newEvents.length)]
-      
-      setActivities(prev => [{
-        id: Date.now(),
-        ...randomEvent,
-        time: 'Just now'
-      }, ...prev].slice(0, 5))
-    }, 5000)
-
-    return () => clearInterval(interval)
-  }, [])
-
-  return (
-    <div className="brutal-card p-6 space-y-4">
-      <div className="flex items-center justify-between border-b-4 border-border pb-4">
-        <h3 className="font-black text-xl uppercase tracking-tight">System Activity</h3>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Live</span>
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse border border-border"></div>
-        </div>
-      </div>
-      <div className="space-y-4">
-        {activities.map((activity) => (
-          <div key={activity.id} className="flex gap-3 items-start animate-in fade-in slide-in-from-top-2">
-            <div className="p-2 border-2 border-border bg-accent shrink-0">
-              <activity.icon className="w-4 h-4 text-accent-foreground" />
-            </div>
-            <div>
-              <p className="text-sm font-bold">{activity.message}</p>
-              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{activity.time}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+export default async function DashboardPage() {
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll() },
+        setAll() {}
+      },
+    }
   )
-}
 
-export default function DashboardPage() {
-  const [dateRange, setDateRange] = React.useState<any>()
+  // ── Fetch all service requests ──────────────────────
+  const { data: allOrders, count: totalRequests } = await supabase
+    .from('service_requests')
+    .select('id, status, total, currency, created_at, profile_id, service_id', { count: 'exact' })
+
+  // ── Fetch services for code lookup ──────────────────
+  const { data: services } = await supabase
+    .from('services')
+    .select('id, code, name')
+
+  const serviceMap: Record<string, string> = {}
+  services?.forEach(s => { serviceMap[s.id] = s.code || '' })
+
+  // ── Compute stats ──────────────────────────────────
+  let activeExchanges = 0
+  let buyForMeCount = 0
+  let ticketCount = 0
+  let educationCount = 0
+  let globalPaymentsCount = 0
+  let totalRevenue = 0
+
+  // Pending action counts
+  let submittedCount = 0
+  let waitingPaymentCount = 0
+  let processingCount = 0
+
+  if (allOrders) {
+    for (const order of allOrders) {
+      const code = serviceMap[order.service_id] || ''
+      const isActive = !['Completed', 'Cancelled', 'Rejected', 'Refunded'].includes(order.status)
+
+      if (code === 'exchange' && isActive) activeExchanges++
+      if (code === 'buy_for_me') buyForMeCount++
+      if (code === 'ticket_booking') ticketCount++
+      if (code === 'education') educationCount++
+      if (code === 'global_payments') globalPaymentsCount++
+
+      if (order.status === 'Completed' && order.total) {
+        totalRevenue += order.total
+      }
+
+      // Pending actions
+      if (order.status === 'Submitted') submittedCount++
+      if (['Waiting Payment', 'Quote Sent'].includes(order.status)) waitingPaymentCount++
+      if (order.status === 'Processing') processingCount++
+    }
+  }
+
+  const pendingTotal = submittedCount + waitingPaymentCount + processingCount
+
+  // ── Fetch customer count ────────────────────────────
+  const { count: customerCount } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .eq('is_staff', false)
+
+  // ── Recent 5 orders ─────────────────────────────────
+  const { data: recentOrders } = await supabase
+    .from('service_requests')
+    .select('*, profile:profiles(full_name), service:services(name, code)')
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  // ── Wallet balance aggregate ────────────────────────
+  const { data: walletAccounts } = await supabase
+    .from('wallet_accounts')
+    .select('available_balance, currency_code')
+
+  let totalWalletBalance = 0
+  walletAccounts?.forEach(a => { totalWalletBalance += a.available_balance || 0 })
 
   const stats = [
-    { name: 'Total Requests', value: dateRange?.from ? '842' : '1,234', change: '+12%', icon: ClipboardList, color: 'bg-blue-400' },
-    { name: 'Active Exchanges', value: dateRange?.from ? '31' : '45', change: '+5%', icon: RefreshCcw, color: 'bg-accent' },
-    { name: 'Buy For Me', value: dateRange?.from ? '56' : '89', change: '+18%', icon: ShoppingBag, color: 'bg-green-400' },
-    { name: 'Tickets Pending', value: dateRange?.from ? '8' : '12', change: '-2%', icon: Ticket, color: 'bg-purple-400' },
+    { name: 'Total Requests', value: (totalRequests || 0).toLocaleString(), icon: ClipboardList, color: 'bg-blue-400' },
+    { name: 'Active Exchanges', value: activeExchanges.toLocaleString(), icon: RefreshCcw, color: 'bg-accent' },
+    { name: 'Buy For Me', value: buyForMeCount.toLocaleString(), icon: ShoppingBag, color: 'bg-green-400' },
+    { name: 'Tickets', value: ticketCount.toLocaleString(), icon: Ticket, color: 'bg-purple-400' },
+    { name: 'Education', value: educationCount.toLocaleString(), icon: GraduationCap, color: 'bg-indigo-400' },
+    { name: 'Global Payments', value: globalPaymentsCount.toLocaleString(), icon: Globe, color: 'bg-teal-400' },
+    { name: 'Customers', value: (customerCount || 0).toLocaleString(), icon: Users, color: 'bg-orange-400' },
   ]
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+    <div className="space-y-4 md:space-y-5 max-w-7xl mx-auto">
+      {/* Dashboard Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <h2 className="text-4xl font-black tracking-tight uppercase">Dashboard</h2>
-          <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs mt-1">
-            {dateRange?.from ? `Metrics for Selected Period` : 'Operational Overview & Real-time Metrics'}
+          <h2 className="text-xl md:text-2xl font-black tracking-tight uppercase">Dashboard</h2>
+          <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px] mt-0.5">
+            Operational Overview &amp; Real-time Metrics
           </p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-4">
-          <DateRangePicker onRangeChange={setDateRange} />
-          
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <button className="brutal-button bg-card flex items-center gap-2">
+            <button className="brutal-button bg-card text-foreground flex items-center gap-2 text-sm py-1.5 px-3">
               <Download className="w-4 h-4" />
               Report
-            </button>
-            <button className="brutal-button flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Task
             </button>
           </div>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* KPI Stats Grid — Compact Bento Boxes */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {stats.map((stat) => (
-          <div key={stat.name} className="brutal-card p-6 flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <div className={cn("p-2 border-2 border-border shadow-[2px_2px_0px_0px_var(--color-border)]", stat.color)}>
-                <stat.icon className="w-6 h-6 text-foreground" />
-              </div>
-              <span className={cn(
-                "text-xs font-black px-2 py-1 border-2 border-border text-foreground",
-                stat.change.startsWith('+') ? "bg-green-400" : "bg-red-400"
-              )}>
-                {stat.change}
-              </span>
+          <div key={stat.name} className="brutal-card-compact p-3 flex flex-col gap-2">
+            <div className={cn("p-1.5 border-2 border-border shadow-[2px_2px_0px_0px_var(--color-border)] w-fit", stat.color)}>
+              <stat.icon className="w-4 h-4 text-foreground" />
             </div>
             <div>
-              <p className="text-xs font-black uppercase text-muted-foreground tracking-widest">{stat.name}</p>
-              <p className="text-3xl font-black">{stat.value}</p>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-tight">{stat.name}</p>
+              <p className="text-xl font-black">{stat.value}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Recent Activity */}
-        <div className="lg:col-span-2 brutal-card bg-card overflow-hidden flex flex-col">
-          <div className="p-6 border-b-4 border-border flex items-center justify-between bg-card">
-            <h3 className="font-black text-xl uppercase tracking-tight">Recent Requests</h3>
-            <button className="text-sm font-black underline decoration-2 underline-offset-4 hover:text-accent transition-colors">View All</button>
-          </div>
-          <div className="flex-1">
-             <table className="w-full text-left">
-               <thead>
-                 <tr className="border-b-4 border-border bg-muted">
-                   <th className="p-4 font-black uppercase text-xs">Customer</th>
-                   <th className="p-4 font-black uppercase text-xs">Type</th>
-                   <th className="p-4 font-black uppercase text-xs">Status</th>
-                   <th className="p-4 font-black uppercase text-xs">Date</th>
-                   <th className="p-4 font-black uppercase text-xs text-right">Action</th>
-                 </tr>
-               </thead>
-               <tbody>
-                 {[1, 2, 3, 4, 5].map((i) => (
-                   <tr key={i} className="border-b-2 border-border last:border-0 hover:bg-muted/50 transition-colors">
-                     <td className="p-4">
-                       <div className="flex items-center gap-3">
-                         <div className="w-8 h-8 bg-accent border-2 border-border font-black flex items-center justify-center text-xs text-accent-foreground">
-                           JD
-                         </div>
-                         <span className="font-bold">John Doe</span>
-                       </div>
-                     </td>
-                     <td className="p-4">
-                       <span className="font-bold px-2 py-1 bg-blue-100 dark:bg-blue-900 border-2 border-border text-[10px] uppercase">Exchange</span>
-                     </td>
-                     <td className="p-4">
-                        <span className="flex items-center gap-2">
-                           <span className="w-2 h-2 rounded-full bg-yellow-400 border border-border"></span>
-                           <span className="font-bold text-sm">Processing</span>
-                        </span>
-                     </td>
-                     <td className="p-4 font-bold text-sm text-muted-foreground">2 mins ago</td>
-                     <td className="p-4 text-right">
-                       <button className="p-1 border-2 border-border hover:bg-accent hover:text-accent-foreground transition-all">
-                         <ArrowUpRight className="w-4 h-4" />
-                       </button>
-                     </td>
+      {/* Main Bento Grid — 3 columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Left: Recent Orders + Pending Actions (span 2) */}
+        <div className="lg:col-span-2 flex flex-col gap-5">
+          {/* Recent Requests Table */}
+          <div className="brutal-card-static bg-card overflow-hidden flex flex-col">
+            <div className="px-4 py-3 border-b-4 border-border flex items-center justify-between bg-card">
+              <h3 className="font-black text-base uppercase tracking-tight">Recent Requests</h3>
+              <Link href="/orders" className="text-xs font-black underline decoration-2 underline-offset-4 hover:text-accent transition-colors">View All</Link>
+            </div>
+            <div className="flex-1">
+               <table className="w-full text-left">
+                 <thead>
+                   <tr className="border-b-4 border-border bg-muted">
+                     <th className="px-4 py-2 font-black uppercase text-[10px] tracking-wider">Customer</th>
+                     <th className="px-4 py-2 font-black uppercase text-[10px] tracking-wider">Service</th>
+                     <th className="px-4 py-2 font-black uppercase text-[10px] tracking-wider">Status</th>
+                     <th className="px-4 py-2 font-black uppercase text-[10px] tracking-wider">Amount</th>
+                     <th className="px-4 py-2 font-black uppercase text-[10px] tracking-wider">Date</th>
+                     <th className="px-4 py-2 font-black uppercase text-[10px] tracking-wider text-right">Action</th>
                    </tr>
-                 ))}
-               </tbody>
-             </table>
+                 </thead>
+                 <tbody>
+                   {(!recentOrders || recentOrders.length === 0) ? (
+                     <tr>
+                       <td colSpan={6} className="px-4 py-6">
+                         <div className="flex flex-col items-center justify-center opacity-50">
+                           <ClipboardList className="w-6 h-6 mb-1.5" />
+                           <span className="text-xs font-black uppercase tracking-widest">No requests yet</span>
+                           <span className="text-[10px] font-bold text-muted-foreground mt-0.5">Requests will appear here as they come in</span>
+                         </div>
+                       </td>
+                     </tr>
+                   ) : recentOrders.map((order: any) => {
+                     const statusColor = 
+                       order.status === 'Completed' ? 'bg-green-400' :
+                       order.status === 'Cancelled' ? 'bg-red-400' :
+                       ['Processing', 'Submitted'].includes(order.status) ? 'bg-yellow-400' :
+                       'bg-blue-400'
+
+                     return (
+                       <tr key={order.id} className="border-b-2 border-border last:border-0 hover:bg-muted/50 transition-colors">
+                         <td className="px-4 py-2.5">
+                           <div className="flex items-center gap-2">
+                             <div className="w-7 h-7 bg-accent border-2 border-border font-black flex items-center justify-center text-[10px] text-accent-foreground shrink-0">
+                               {(order.profile as any)?.full_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
+                             </div>
+                             <span className="font-bold text-sm truncate max-w-[120px]">{(order.profile as any)?.full_name || 'Unknown'}</span>
+                           </div>
+                         </td>
+                         <td className="px-4 py-2.5">
+                           <span className="font-bold px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900 border-2 border-border text-[10px] uppercase">{(order.service as any)?.name}</span>
+                         </td>
+                         <td className="px-4 py-2.5">
+                            <span className="flex items-center gap-1.5">
+                               <span className={cn("w-2 h-2 rounded-full border border-border", statusColor)}></span>
+                               <span className="font-bold text-xs">{order.status}</span>
+                            </span>
+                         </td>
+                         <td className="px-4 py-2.5 font-bold text-xs text-foreground">
+                           {order.total != null
+                             ? `${order.currency || '$'}${Number(order.total).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                             : <span className="text-muted-foreground">—</span>
+                           }
+                         </td>
+                         <td className="px-4 py-2.5 font-bold text-xs text-muted-foreground">
+                           {new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                         </td>
+                         <td className="px-4 py-2.5 text-right">
+                           <Link href={`/orders/${order.id}`} className="p-1 border-2 border-border hover:bg-accent hover:text-accent-foreground transition-all inline-block">
+                             <ArrowUpRight className="w-3.5 h-3.5" />
+                           </Link>
+                         </td>
+                       </tr>
+                     )
+                   })}
+                 </tbody>
+               </table>
+            </div>
           </div>
+
+          {/* Pending Actions — compact, collapses when empty */}
+          {pendingTotal > 0 && (
+            <div className="brutal-card-compact p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="w-4 h-4 text-orange-500" />
+                <h3 className="font-black text-xs uppercase tracking-widest">Requires Attention</h3>
+                <span className="ml-auto text-[10px] font-black bg-orange-400 text-foreground border-2 border-border px-1.5 py-0.5">{pendingTotal}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {submittedCount > 0 && (
+                  <Link href="/orders?status=Submitted" className="flex items-center gap-1.5 px-2.5 py-1.5 border-2 border-border bg-yellow-100 dark:bg-yellow-900/30 hover:shadow-[2px_2px_0px_0px_var(--color-border)] transition-all text-xs font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 border border-border"></span>
+                    {submittedCount} Submitted
+                  </Link>
+                )}
+                {waitingPaymentCount > 0 && (
+                  <Link href="/orders?status=Waiting+Payment" className="flex items-center gap-1.5 px-2.5 py-1.5 border-2 border-border bg-blue-100 dark:bg-blue-900/30 hover:shadow-[2px_2px_0px_0px_var(--color-border)] transition-all text-xs font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 border border-border"></span>
+                    {waitingPaymentCount} Awaiting Payment
+                  </Link>
+                )}
+                {processingCount > 0 && (
+                  <Link href="/orders?status=Processing" className="flex items-center gap-1.5 px-2.5 py-1.5 border-2 border-border bg-green-100 dark:bg-green-900/30 hover:shadow-[2px_2px_0px_0px_var(--color-border)] transition-all text-xs font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 border border-border"></span>
+                    {processingCount} Processing
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Column: Finance & Activity */}
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-5">
           {/* Finance Snapshot */}
-          <div className="brutal-card bg-primary text-primary-foreground p-6 space-y-6">
+          <div className="brutal-card-static bg-primary text-primary-foreground p-4 space-y-4">
             <div className="flex items-center justify-between">
-               <h3 className="font-black text-xl uppercase tracking-tight">Finance Overview</h3>
-               <Activity className="w-6 h-6 text-accent" />
+               <h3 className="font-black text-base uppercase tracking-tight">Finance Overview</h3>
+               <Activity className="w-5 h-5 text-accent" />
             </div>
             
-            <div className="space-y-4">
-              <div className="p-4 border-2 border-primary-foreground/20 bg-primary-foreground/5 space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-primary-foreground/50">Total Revenue</p>
-                <p className="text-3xl font-black text-accent">$128,450.00</p>
+            <div className="space-y-3">
+              <div className="p-3 border-2 border-primary-foreground/20 bg-primary-foreground/5 space-y-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary-foreground/50">Total Revenue (Completed)</p>
+                <p className="text-2xl font-black text-accent">${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
               </div>
               
-              <div className="p-4 border-2 border-primary-foreground/20 bg-primary-foreground/5 space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-primary-foreground/50">Wallet Balances</p>
-                <p className="text-3xl font-black">$542,100.00</p>
+              <div className="p-3 border-2 border-primary-foreground/20 bg-primary-foreground/5 space-y-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary-foreground/50">Total Wallet Balances</p>
+                <p className="text-2xl font-black">${totalWalletBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+              </div>
+
+              <div className="p-3 border-2 border-primary-foreground/20 bg-primary-foreground/5 space-y-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary-foreground/50">Pending Orders</p>
+                <p className="text-2xl font-black">{pendingTotal}</p>
               </div>
             </div>
 
-            <div className="pt-4 border-t-2 border-primary-foreground/20">
-               <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-primary-foreground/70">Monthly Target</span>
-                  <span className="text-xs font-bold text-accent">85%</span>
-               </div>
-               <div className="h-4 border-2 border-primary-foreground bg-primary-foreground/10 relative overflow-hidden">
-                  <div className="absolute inset-y-0 left-0 bg-accent w-[85%] border-r-2 border-primary"></div>
-               </div>
-            </div>
-
-            <button className="w-full py-4 bg-accent text-accent-foreground font-black uppercase tracking-widest text-sm border-2 border-primary-foreground shadow-[4px_4px_0px_0px_var(--color-primary-foreground)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all">
+            <Link href="/orders" className="block w-full py-3 bg-accent text-accent-foreground font-black uppercase tracking-widest text-xs border-2 border-primary-foreground shadow-[4px_4px_0px_0px_var(--color-primary-foreground)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all text-center">
               Full Audit
-            </button>
+            </Link>
           </div>
 
-          <SystemActivityFeed />
+          <DashboardActivityFeed />
         </div>
       </div>
     </div>
