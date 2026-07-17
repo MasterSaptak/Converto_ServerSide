@@ -20,6 +20,36 @@ export class TicketBookingService {
       throw new Error('Ticket Booking service not found')
     }
 
+    // 1.5 Best-effort upsert passengers to centralized CRM table
+    if (data.passengers && data.passengers.length > 0) {
+      try {
+        const passengerRecords = data.passengers.map(p => ({
+          profile_id: profileId,
+          first_name: p.firstName,
+          last_name: p.lastName,
+          dob: p.dob || null,
+          nationality: p.nationality,
+          document_type: p.documentType,
+          document_number: p.documentNumber || p.passportOrIdNumber,
+          passport_expiry_date: p.passportExpiryDate || null,
+          gender: p.gender,
+          nid_or_aadhar: p.nidOrAadhar,
+          meal_preference: p.mealPreference || false,
+          meal_type: p.mealType,
+          metadata: p.metadata || {}
+        }));
+
+        await this.supabase
+          .from('passengers')
+          .upsert(passengerRecords, {
+            onConflict: 'profile_id, first_name, last_name, dob',
+            ignoreDuplicates: false
+          });
+      } catch (err) {
+        console.warn('Failed to upsert passengers to central table:', err);
+      }
+    }
+
     // 2. Build the metadata payload
     const metadata: TicketBookingMetadata = {
       ticket_type: data.ticketType,
@@ -30,6 +60,9 @@ export class TicketBookingService {
         end: data.travelEndDate
       } : undefined,
       event_name: data.eventName,
+      coach_class: data.coachClass,
+      seat_preference: data.seatPreference,
+      train_choice: data.trainChoice,
       passengers: data.passengers,
       passenger_count: data.passengers.length,
       special_requests: data.specialRequests

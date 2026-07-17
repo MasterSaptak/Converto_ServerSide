@@ -1,10 +1,19 @@
-export type TicketType = 'flight' | 'hotel' | 'bus' | 'event';
+export type TicketType = 'flight' | 'hotel' | 'bus' | 'event' | 'train';
 
 export interface Passenger {
   firstName: string;
   lastName: string;
   passportOrIdNumber?: string;
+  documentType?: string;
+  documentNumber?: string;
+  passportExpiryDate?: string; // YYYY-MM-DD
+  gender?: string;
   dob?: string; // YYYY-MM-DD
+  nationality?: string;
+  nidOrAadhar?: string;
+  mealPreference?: boolean;
+  mealType?: 'veg' | 'nonveg' | '';
+  metadata?: Record<string, any>;
 }
 
 export interface TicketBookingMetadata {
@@ -17,6 +26,11 @@ export interface TicketBookingMetadata {
     end?: string;  // YYYY-MM-DD (Optional for one-way/single day)
   };
   event_name?: string; // If ticket_type is 'event'
+  
+  // Train specific
+  coach_class?: string;
+  seat_preference?: string;
+  train_choice?: string;
   
   // Passenger Details
   passengers: Passenger[];
@@ -41,4 +55,7 @@ export interface CreateTicketBookingDTO {
   eventName?: string;
   passengers: Passenger[];
   specialRequests?: string;
+  coachClass?: string;
+  seatPreference?: string;
+  trainChoice?: string;
 }
