@@ -287,7 +287,7 @@ export default async function DashboardPage() {
               </div>
             </div>
 
-            <Link href="/orders" className="block w-full py-3 bg-accent text-accent-foreground font-black uppercase tracking-widest text-xs border-2 border-primary-foreground shadow-[4px_4px_0px_0px_var(--color-primary-foreground)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all text-center">
+            <Link href="/orders" className="block w-full py-3 bg-accent text-accent-foreground font-black uppercase tracking-widest text-xs border-2 border-primary-foreground shadow-[4px_4px_0px_0px_var(--color-primary-foreground)] hover:shadow-[2px_2px_0px_0px_var(--color-primary-foreground)] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all text-center">
               Full Audit
             </Link>
           </div>
