@@ -33,7 +33,7 @@ export default function LandingPage() {
              <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
           </Link>
 
-          <Link href="/login" className="brutal-button bg-white flex items-center justify-between group">
+          <Link href="/login" className="brutal-button bg-white text-black flex items-center justify-between group">
              <span className="text-xl uppercase">Staff Login</span>
              <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
           </Link>
