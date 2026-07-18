@@ -3,6 +3,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
+import { createClient } from '@supabase/supabase-js'
 
 export async function updateCustomerProfile(id: string, formData: FormData) {
   const cookieStore = await cookies()
@@ -150,5 +151,53 @@ export async function toggleStaffStatus(id: string, isStaff: boolean) {
   }
 
   revalidatePath(`/customers/${id}`)
+  return { success: true }
+}
+
+export async function deleteCustomerCompletely(id: string) {
+  // We need the admin client to bypass RLS and delete from auth.users
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  // 1. Delete from auth.users (this should cascade if configured correctly)
+  const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id)
+
+  if (authError) {
+    console.error('Error deleting auth user:', authError)
+  }
+
+  // Explicitly delete from other tables if they aren't ON DELETE CASCADE
+  // service_requests
+  await supabaseAdmin.from('service_requests').delete().eq('profile_id', id)
+  
+  // documents
+  await supabaseAdmin.from('documents').delete().eq('customer_id', id)
+  
+  // wallets (wallet_transactions and wallet_accounts should cascade from wallets)
+  const { data: wallets } = await supabaseAdmin.from('wallets').select('id').eq('profile_id', id)
+  if (wallets && wallets.length > 0) {
+    for (const w of wallets) {
+      // Deleting wallet accounts for this wallet
+      const { data: accounts } = await supabaseAdmin.from('wallet_accounts').select('id').eq('wallet_id', w.id)
+      if (accounts && accounts.length > 0) {
+        for (const a of accounts) {
+           await supabaseAdmin.from('wallet_transactions').delete().eq('wallet_account_id', a.id)
+        }
+        await supabaseAdmin.from('wallet_accounts').delete().eq('wallet_id', w.id)
+      }
+      await supabaseAdmin.from('wallets').delete().eq('id', w.id)
+    }
+  }
+
+  // Finally delete profile (if not already deleted by cascade)
+  const { error: profileError } = await supabaseAdmin.from('profiles').delete().eq('id', id)
+
+  if (profileError) {
+    console.error('Error deleting profile:', profileError)
+  }
+
+  revalidatePath('/customers')
   return { success: true }
 }

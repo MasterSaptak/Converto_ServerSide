@@ -7,6 +7,7 @@ import { ProfileEditModal } from './ProfileEditModal'
 import { WalletManageModal } from './WalletManageModal'
 import { ResetPasswordButton } from './ResetPasswordButton'
 import { StaffToggleButton } from './StaffToggleButton'
+import { DeleteUserModal } from './DeleteUserModal'
 
 export default async function CustomerProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -83,6 +84,10 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
                 <StaffToggleButton customerId={customer.id} initialIsStaff={customer.is_staff} />
                 <ResetPasswordButton email={customer.email} />
                 <ProfileEditModal customer={customer} />
+                <DeleteUserModal 
+                  customerId={customer.id} 
+                  customerName={customer.full_name !== 'EMPTY' && customer.full_name ? customer.full_name : (customer.username !== 'EMPTY' && customer.username ? customer.username : 'Unnamed')} 
+                />
               </div>
             </div>
             
