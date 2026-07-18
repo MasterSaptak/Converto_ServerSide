@@ -154,7 +154,7 @@ export async function toggleStaffStatus(id: string, isStaff: boolean) {
   return { success: true }
 }
 
-export async function deleteCustomerCompletely(id: string) {
+export async function deleteCustomerCompletely(id: string): Promise<{ success: boolean; error?: string }> {
   // We need the admin client to bypass RLS and delete from auth.users
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -166,6 +166,7 @@ export async function deleteCustomerCompletely(id: string) {
 
   if (authError) {
     console.error('Error deleting auth user:', authError)
+    return { success: false, error: authError.message }
   }
 
   // Explicitly delete from other tables if they aren't ON DELETE CASCADE
@@ -196,6 +197,7 @@ export async function deleteCustomerCompletely(id: string) {
 
   if (profileError) {
     console.error('Error deleting profile:', profileError)
+    return { success: false, error: profileError.message }
   }
 
   revalidatePath('/customers')
