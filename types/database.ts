@@ -14,6 +14,7 @@ export interface Profile {
   phone: string | null;
   country: string | null;
   timezone: string | null;
+  address: string | null;
   preferred_currency: string;
   avatar_url: string | null;
   is_staff: boolean;

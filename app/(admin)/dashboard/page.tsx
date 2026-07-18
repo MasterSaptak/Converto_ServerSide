@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import Link from 'next/link'
@@ -18,6 +19,8 @@ import {
 import { cn } from '@/lib/utils'
 import { DashboardActivityFeed } from './components/activity-feed'
 
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardPage() {
   const cookieStore = await cookies()
   const supabase = createServerClient(
@@ -31,13 +34,19 @@ export default async function DashboardPage() {
     }
   )
 
+  // Create an Admin client that ignores user cookies and purely uses the Service Role Key
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
   // ── Fetch all service requests ──────────────────────
-  const { data: allOrders, count: totalRequests } = await supabase
+  const { data: allOrders, count: totalRequests } = await supabaseAdmin
     .from('service_requests')
     .select('id, status, total, currency, created_at, profile_id, service_id', { count: 'exact' })
 
   // ── Fetch services for code lookup ──────────────────
-  const { data: services } = await supabase
+  const { data: services } = await supabaseAdmin
     .from('services')
     .select('id, code, name')
 
@@ -82,20 +91,20 @@ export default async function DashboardPage() {
   const pendingTotal = submittedCount + waitingPaymentCount + processingCount
 
   // ── Fetch customer count ────────────────────────────
-  const { count: customerCount } = await supabase
+  const { count: customerCount } = await supabaseAdmin
     .from('profiles')
     .select('id', { count: 'exact', head: true })
     .eq('is_staff', false)
 
   // ── Recent 5 orders ─────────────────────────────────
-  const { data: recentOrders } = await supabase
+  const { data: recentOrders } = await supabaseAdmin
     .from('service_requests')
     .select('*, profile:profiles(full_name), service:services(name, code)')
     .order('created_at', { ascending: false })
     .limit(5)
 
   // ── Wallet balance aggregate ────────────────────────
-  const { data: walletAccounts } = await supabase
+  const { data: walletAccounts } = await supabaseAdmin
     .from('wallet_accounts')
     .select('available_balance, currency_code')
 

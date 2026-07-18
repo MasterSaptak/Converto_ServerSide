@@ -3,6 +3,10 @@ import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { ArrowLeft, User, Wallet, FileText, ArrowUpRight, History } from 'lucide-react'
 import { notFound } from 'next/navigation'
+import { ProfileEditModal } from './ProfileEditModal'
+import { WalletManageModal } from './WalletManageModal'
+import { ResetPasswordButton } from './ResetPasswordButton'
+import { StaffToggleButton } from './StaffToggleButton'
 
 export default async function CustomerProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -64,35 +68,77 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
         
         {/* Left Column - Overview & Wallets */}
         <div className="space-y-8">
-          <div className="brutal-card bg-white p-6 md:p-8">
-             <div className="flex items-center gap-2 mb-6 border-b-4 border-black pb-2">
-                <User className="w-5 h-5" />
-                <h3 className="font-black uppercase tracking-widest text-sm">
-                  Overview
-                </h3>
-             </div>
+          <div className="brutal-card bg-white p-6 md:p-8 relative">
+            {customer.is_staff && (
+              <div className="absolute top-0 right-0 bg-amber-300 border-l-4 border-b-4 border-black px-3 py-1 font-black text-[10px] tracking-widest uppercase flex items-center gap-1">
+                STAFF ACCOUNT
+              </div>
+            )}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b-4 border-black pb-4 mt-4 sm:mt-0">
+              <h3 className="font-black text-sm uppercase tracking-widest flex items-center gap-2">
+                <User className="w-4 h-4" />
+                Overview
+              </h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                <StaffToggleButton customerId={customer.id} initialIsStaff={customer.is_staff} />
+                <ResetPasswordButton email={customer.email} />
+                <ProfileEditModal customer={customer} />
+              </div>
+            </div>
             
              <div className="space-y-4">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Full Name</span>
-                  <p className="font-black text-xl">{customer.full_name || 'N/A'}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Email</span>
-                  <p className="font-bold">{customer.email || 'N/A'}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Phone</span>
-                  <p className="font-bold">{customer.phone || 'N/A'}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Country</span>
-                  <p className="font-bold">{customer.country || 'N/A'}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Joined</span>
-                  <p className="font-bold text-xs">{new Date(customer.created_at).toLocaleDateString()}</p>
-                </div>
+                {(() => {
+                  const isValidString = (val: any) => val && typeof val === 'string' && !['EMPTY', 'NULL'].includes(val.toUpperCase());
+                  const displayName = isValidString(customer.full_name) ? customer.full_name : (isValidString(customer.username) ? customer.username : 'N/A');
+                  const displayEmail = isValidString(customer.email) ? customer.email : 'N/A';
+                  const displayCountry = isValidString(customer.country) ? customer.country : 'N/A';
+                  const displayPhone = isValidString(customer.phone) ? customer.phone : 'N/A';
+                  const displayTimezone = isValidString(customer.timezone) ? customer.timezone : 'N/A';
+                  const displayAddress = isValidString(customer.address) ? customer.address : 'N/A';
+                  
+                  return (
+                    <>
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Full Name</span>
+                        <p className="font-black text-xl">{displayName}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Email</span>
+                        <p className="font-bold">{displayEmail}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Phone</span>
+                        <p className="font-bold">{displayPhone}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Country</span>
+                        <p className="font-bold">{displayCountry}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Time Zone</span>
+                        <p className="font-bold">{displayTimezone}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Present Address</span>
+                        <p className="font-bold">{displayAddress}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Joined</span>
+                        <p className="font-bold text-xs">
+                          {new Intl.DateTimeFormat('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            timeZoneName: 'short'
+                          }).format(new Date(customer.created_at))}
+                        </p>
+                      </div>
+                    </>
+                  );
+                })()}
              </div>
           </div>
 
@@ -105,24 +151,34 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
              </div>
 
              <div className="space-y-4">
-                {(!customer.wallets || customer.wallets.length === 0) ? (
-                  <p className="text-xs font-bold uppercase opacity-50 text-center py-4">No wallet found</p>
-                ) : (
-                  customer.wallets.map((wallet: any) => (
-                    <div key={wallet.id} className="space-y-4">
-                      {(!wallet.wallet_accounts || wallet.wallet_accounts.length === 0) ? (
-                        <p className="text-xs font-bold uppercase opacity-50">No accounts open</p>
-                      ) : (
-                        wallet.wallet_accounts.map((account: any) => (
-                          <div key={account.id} className="flex justify-between items-center border-2 border-black p-3 bg-white">
-                            <span className="font-black font-mono text-xl">{account.currency}</span>
-                            <span className="font-bold text-lg">{account.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  ))
-                )}
+                {(() => {
+                  const walletsArray = Array.isArray(customer.wallets) ? customer.wallets : (customer.wallets ? [customer.wallets] : []);
+                  if (walletsArray.length === 0) {
+                    return <p className="text-xs font-bold uppercase opacity-50 text-center py-4">No wallet found</p>;
+                  }
+                  return walletsArray.map((wallet: any) => {
+                    const accountsArray = Array.isArray(wallet.wallet_accounts) ? wallet.wallet_accounts : (wallet.wallet_accounts ? [wallet.wallet_accounts] : []);
+                    return (
+                      <div key={wallet.id} className="space-y-4">
+                        {accountsArray.length === 0 ? (
+                          <p className="text-xs font-bold uppercase opacity-50">No accounts open</p>
+                        ) : (
+                          accountsArray.map((account: any) => (
+                            <div key={account.id} className="flex flex-col gap-3 border-2 border-black p-4 bg-white">
+                              <div className="flex justify-between items-center">
+                                <span className="font-black font-mono text-xl">{account.currency_code || account.currency || 'N/A'}</span>
+                                <span className="font-bold text-lg">{(account.available_balance ?? account.balance ?? 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                              </div>
+                              <div className="flex justify-end pt-2 border-t-2 border-dashed border-black/20">
+                                <WalletManageModal account={account} />
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
              </div>
           </div>
         </div>

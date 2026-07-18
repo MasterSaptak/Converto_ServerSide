@@ -23,11 +23,10 @@ export default async function CustomersPage({
     }
   )
 
-  // Fetch all non-staff profiles
+  // Fetch all profiles (including staff who might act as clients)
   let query = supabase
     .from('profiles')
     .select('*')
-    .eq('is_staff', false)
     .order('created_at', { ascending: false })
 
   if (q) {
@@ -100,19 +99,25 @@ export default async function CustomersPage({
                  </div>
                ) : customers.map(customer => {
                  const stats = customerStats[customer.id] || { count: 0, spent: 0, active: false }
+                 
+                 const isValidString = (val: any) => val && typeof val === 'string' && !['EMPTY', 'NULL'].includes(val.toUpperCase());
+                 const displayName = isValidString(customer.full_name) ? customer.full_name : (isValidString(customer.username) ? customer.username : 'Unnamed');
+                 const displayContact = isValidString(customer.email) ? customer.email : (isValidString(customer.phone) ? customer.phone : 'No contact info');
+                 const avatarInitials = displayName !== 'Unnamed' ? displayName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : '?';
+
                  return (
                   <div key={customer.id} className="brutal-card bg-white p-6 flex items-center justify-between group cursor-pointer hover:bg-slate-50">
                      <div className="flex items-center gap-6">
                         <Avatar className="w-16 h-16 rounded-none border-4 border-black">
                           <AvatarImage src={customer.avatar_url || ''} />
-                          <AvatarFallback className="rounded-none font-black text-xl bg-accent">{customer.full_name?.split(' ').map((n: string) => n[0]).join('') || '?'}</AvatarFallback>
+                          <AvatarFallback className="rounded-none font-black text-xl bg-accent">{avatarInitials}</AvatarFallback>
                         </Avatar>
                         <div>
                            <div className="flex items-center gap-2">
-                              <h4 className="text-xl font-black uppercase">{customer.full_name || 'Unnamed'}</h4>
+                              <h4 className="text-xl font-black uppercase">{displayName}</h4>
                               {stats.active && <UserCheck className="w-4 h-4 text-green-600" />}
                            </div>
-                           <p className="text-sm font-bold text-black/50">{customer.email || 'No email'}</p>
+                           <p className="text-sm font-bold text-black/50">{displayContact}</p>
                            <div className="flex items-center gap-4 mt-2">
                               <span className="text-[10px] font-black uppercase bg-black text-white px-2 py-0.5">{stats.count} Requests</span>
                               <span className="text-[10px] font-black uppercase bg-accent text-black px-2 py-0.5">${stats.spent.toLocaleString(undefined, { minimumFractionDigits: 2 })} Spent</span>

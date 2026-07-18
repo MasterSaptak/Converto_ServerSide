@@ -10,6 +10,27 @@ const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-headi
 export const metadata: Metadata = {
   title: 'Converto Admin ERP',
   description: 'Operations Dashboard for Converto',
+  openGraph: {
+    title: "Converto Admin ERP",
+    description: "Operations Dashboard for Converto",
+    url: "https://converto.saptech.online/admin",
+    siteName: "Converto",
+    images: [
+      {
+        url: "/opengraph-image.png",
+        width: 1024,
+        height: 1024,
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Converto Admin ERP",
+    description: "Operations Dashboard for Converto",
+    images: ["/opengraph-image.png"],
+  },
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
