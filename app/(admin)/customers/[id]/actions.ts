@@ -203,3 +203,81 @@ export async function deleteCustomerCompletely(id: string): Promise<{ success: b
   revalidatePath('/customers')
   return { success: true }
 }
+
+export async function manageCPoints(customerId: string, type: 'add' | 'remove', amount: number, description: string) {
+  try {
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    // 1. Get current rewards
+    const { data: rewards, error: fetchError } = await supabaseAdmin
+      .from('user_rewards')
+      .select('*')
+      .eq('user_id', customerId)
+      .single()
+
+    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is not found
+      return { success: false, error: fetchError.message }
+    }
+
+    let newAvailable = Number(rewards?.available_c_points || 0)
+    let newLifetime = Number(rewards?.lifetime_c_points || 0)
+
+    if (type === 'add') {
+      newAvailable += amount
+      newLifetime += amount
+    } else {
+      newAvailable -= amount
+      if (newAvailable < 0) {
+        return { success: false, error: 'Insufficient C-Points to deduct' }
+      }
+    }
+
+    // 2. Update or Insert rewards
+    if (rewards) {
+      const { error: updateError } = await supabaseAdmin
+        .from('user_rewards')
+        .update({
+          available_c_points: newAvailable,
+          lifetime_c_points: newLifetime,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', customerId)
+
+      if (updateError) return { success: false, error: updateError.message }
+    } else {
+      const { error: insertError } = await supabaseAdmin
+        .from('user_rewards')
+        .insert({
+          user_id: customerId,
+          available_c_points: newAvailable,
+          lifetime_c_points: newLifetime,
+          updated_at: new Date().toISOString()
+        })
+        
+      if (insertError) return { success: false, error: insertError.message }
+    }
+
+    // 3. Create transaction record
+    const { error: txError } = await supabaseAdmin
+      .from('reward_transactions')
+      .insert({
+        user_id: customerId,
+        type: type === 'add' ? 'admin_bonus' : 'adjustment',
+        points: type === 'add' ? amount : -amount,
+        description: description
+      })
+
+    if (txError) {
+      console.error('Failed to log reward transaction:', txError)
+    }
+
+    revalidatePath(`/customers/${customerId}`)
+    return { success: true }
+  } catch (err: any) {
+    console.error('Error in manageCPoints:', err)
+    return { success: false, error: err.message || 'An unexpected error occurred' }
+  }
+}

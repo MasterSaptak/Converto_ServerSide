@@ -1,13 +1,14 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import Link from 'next/link'
-import { ArrowLeft, User, Wallet, FileText, ArrowUpRight, History } from 'lucide-react'
+import { ArrowLeft, User, Wallet, FileText, ArrowUpRight, History, Award } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { ProfileEditModal } from './ProfileEditModal'
 import { WalletManageModal } from './WalletManageModal'
 import { ResetPasswordButton } from './ResetPasswordButton'
 import { StaffToggleButton } from './StaffToggleButton'
 import { DeleteUserModal } from './DeleteUserModal'
+import { ManageCPointsModal } from './ManageCPointsModal'
 
 export default async function CustomerProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -48,36 +49,43 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
     .eq('customer_id', id)
     .order('created_at', { ascending: false })
 
+  // Fetch Rewards
+  const { data: rewards } = await supabase
+    .from('user_rewards')
+    .select('*')
+    .eq('user_id', id)
+    .single()
+
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-10">
-      <div className="flex items-center gap-4">
-        <Link href="/customers" className="brutal-button p-3 bg-white">
-          <ArrowLeft className="w-5 h-5" />
+    <div className="space-y-4 max-w-7xl mx-auto pb-10 min-w-0">
+      <div className="flex items-center gap-4 bg-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <Link href="/customers" className="p-3 bg-black text-white hover:scale-105 transition-transform shrink-0">
+          <ArrowLeft className="w-6 h-6" />
         </Link>
         <div>
-          <h2 className="text-4xl font-black tracking-tight uppercase">Customer Profile</h2>
+          <h2 className="text-3xl font-black tracking-tight uppercase leading-none">Customer Profile</h2>
           <div className="flex items-center gap-3 mt-2">
-            <span className="font-mono text-black/60 font-bold uppercase tracking-widest text-[10px]">ID: {customer.id}</span>
-            <span className="border-2 px-2 py-0.5 font-black uppercase text-[10px] tracking-widest bg-accent">
+            <span className="font-mono text-black/60 font-bold uppercase tracking-widest text-xs">ID: {customer.id}</span>
+            <span className="border-2 border-black px-2 py-0.5 font-black uppercase text-xs tracking-widest bg-accent">
               Verified
             </span>
           </div>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_2fr] gap-8">
+      <div className="grid lg:grid-cols-[1fr_2fr] xl:grid-cols-[400px_1fr] gap-4 min-w-0">
         
-        {/* Left Column - Overview & Wallets */}
-        <div className="space-y-8">
-          <div className="brutal-card bg-white p-6 md:p-8 relative">
+        {/* Left Column - Overview & Wallets & Rewards */}
+        <div className="space-y-4 min-w-0">
+          <div className="bg-white border-4 border-black p-5 relative shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             {customer.is_staff && (
-              <div className="absolute top-0 right-0 bg-amber-300 border-l-4 border-b-4 border-black px-3 py-1 font-black text-[10px] tracking-widest uppercase flex items-center gap-1">
+              <div className="absolute top-0 right-0 bg-amber-300 border-l-4 border-b-4 border-black px-3 py-1 font-black text-sm tracking-widest uppercase flex items-center gap-1">
                 STAFF ACCOUNT
               </div>
             )}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b-4 border-black pb-4 mt-4 sm:mt-0">
-              <h3 className="font-black text-sm uppercase tracking-widest flex items-center gap-2">
-                <User className="w-4 h-4" />
+            <div className="flex flex-col gap-3 mb-5 border-b-4 border-black pb-4 mt-4">
+              <h3 className="font-black text-lg uppercase tracking-widest flex items-center gap-2">
+                <User className="w-5 h-5" />
                 Overview
               </h3>
               <div className="flex items-center gap-2 flex-wrap">
@@ -91,7 +99,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
               </div>
             </div>
             
-             <div className="space-y-4">
+             <div className="space-y-3">
                 {(() => {
                   const isValidString = (val: any) => val && typeof val === 'string' && !['EMPTY', 'NULL'].includes(val.toUpperCase());
                   const displayName = isValidString(customer.full_name) ? customer.full_name : (isValidString(customer.username) ? customer.username : 'N/A');
@@ -99,46 +107,35 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
                   const displayCountry = isValidString(customer.country) ? customer.country : 'N/A';
                   const displayPhone = isValidString(customer.phone) ? customer.phone : 'N/A';
                   const displayTimezone = isValidString(customer.timezone) ? customer.timezone : 'N/A';
-                  const displayAddress = isValidString(customer.address) ? customer.address : 'N/A';
                   
                   return (
                     <>
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Full Name</span>
-                        <p className="font-black text-xl">{displayName}</p>
+                      <div className="flex flex-col bg-slate-50 p-3 border-2 border-black">
+                        <span className="text-xs font-black uppercase tracking-widest opacity-60">Full Name</span>
+                        <p className="font-black text-xl truncate">{displayName}</p>
                       </div>
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Email</span>
-                        <p className="font-bold">{displayEmail}</p>
+                      <div className="flex flex-col bg-slate-50 p-3 border-2 border-black">
+                        <span className="text-xs font-black uppercase tracking-widest opacity-60">Email</span>
+                        <p className="font-bold text-lg truncate">{displayEmail}</p>
                       </div>
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Phone</span>
-                        <p className="font-bold">{displayPhone}</p>
+                      <div className="flex flex-col bg-slate-50 p-3 border-2 border-black">
+                        <span className="text-xs font-black uppercase tracking-widest opacity-60">Phone</span>
+                        <p className="font-bold text-lg truncate">{displayPhone}</p>
                       </div>
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Country</span>
-                        <p className="font-bold">{displayCountry}</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex flex-col bg-slate-50 p-3 border-2 border-black">
+                          <span className="text-xs font-black uppercase tracking-widest opacity-60">Country</span>
+                          <p className="font-bold text-lg truncate">{displayCountry}</p>
+                        </div>
+                        <div className="flex flex-col bg-slate-50 p-3 border-2 border-black">
+                          <span className="text-xs font-black uppercase tracking-widest opacity-60">Time Zone</span>
+                          <p className="font-bold text-lg truncate">{displayTimezone}</p>
+                        </div>
                       </div>
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Time Zone</span>
-                        <p className="font-bold">{displayTimezone}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Present Address</span>
-                        <p className="font-bold">{displayAddress}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Joined</span>
-                        <p className="font-bold text-xs">
-                          {new Intl.DateTimeFormat('en-US', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            timeZoneName: 'short'
-                          }).format(new Date(customer.created_at))}
+                      <div className="flex flex-col bg-slate-50 p-3 border-2 border-black">
+                        <span className="text-xs font-black uppercase tracking-widest opacity-60">Joined</span>
+                        <p className="font-bold text-sm truncate">
+                          {new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(new Date(customer.created_at))}
                         </p>
                       </div>
                     </>
@@ -147,34 +144,65 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
              </div>
           </div>
 
-          <div className="brutal-card bg-accent p-6 md:p-8">
-             <div className="flex items-center gap-2 mb-6 border-b-4 border-black pb-2">
+          <div className="bg-primary/20 border-4 border-black p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+             <div className="flex items-center justify-between gap-2 mb-4 border-b-4 border-black pb-3">
+                <div className="flex items-center gap-2">
+                  <Award className="w-5 h-5" />
+                  <h3 className="font-black uppercase tracking-widest text-lg">
+                    Rewards & C-Points
+                  </h3>
+                </div>
+             </div>
+
+             <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-white border-4 border-black">
+                  <span className="text-xs font-black uppercase tracking-widest opacity-60">Available</span>
+                  <span className="font-black font-mono text-3xl text-primary">{(rewards?.available_c_points || 0).toLocaleString()} C</span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-white border-4 border-black">
+                    <span className="text-xs font-black uppercase tracking-widest opacity-60 block">Lifetime</span>
+                    <span className="font-black font-mono text-xl">{(rewards?.lifetime_c_points || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="p-3 bg-white border-4 border-black">
+                    <span className="text-xs font-black uppercase tracking-widest opacity-60 block">Tier</span>
+                    <span className="font-black text-xl uppercase">{rewards?.tier || 'Bronze'}</span>
+                  </div>
+                </div>
+
+                <ManageCPointsModal customerId={customer.id} currentPoints={rewards?.available_c_points || 0} />
+             </div>
+          </div>
+
+          <div className="bg-accent border-4 border-black p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+             <div className="flex items-center gap-2 mb-4 border-b-4 border-black pb-3">
                 <Wallet className="w-5 h-5" />
-                <h3 className="font-black uppercase tracking-widest text-sm">
+                <h3 className="font-black uppercase tracking-widest text-lg">
                   Wallets & Balances
                 </h3>
              </div>
 
-             <div className="space-y-4">
+             <div className="space-y-3">
                 {(() => {
                   const walletsArray = Array.isArray(customer.wallets) ? customer.wallets : (customer.wallets ? [customer.wallets] : []);
                   if (walletsArray.length === 0) {
-                    return <p className="text-xs font-bold uppercase opacity-50 text-center py-4">No wallet found</p>;
+                    return <p className="text-sm font-bold uppercase opacity-50 text-center py-2">No wallet found</p>;
                   }
                   return walletsArray.map((wallet: any) => {
                     const accountsArray = Array.isArray(wallet.wallet_accounts) ? wallet.wallet_accounts : (wallet.wallet_accounts ? [wallet.wallet_accounts] : []);
                     return (
-                      <div key={wallet.id} className="space-y-4">
+                      <div key={wallet.id} className="space-y-3">
                         {accountsArray.length === 0 ? (
-                          <p className="text-xs font-bold uppercase opacity-50">No accounts open</p>
+                          <p className="text-sm font-bold uppercase opacity-50">No accounts open</p>
                         ) : (
                           accountsArray.map((account: any) => (
-                            <div key={account.id} className="flex flex-col gap-3 border-2 border-black p-4 bg-white">
+                            <div key={account.id} className="flex flex-col gap-2 border-4 border-black p-4 bg-white hover:bg-slate-50 transition-colors">
                               <div className="flex justify-between items-center">
                                 <span className="font-black font-mono text-xl">{account.currency_code || account.currency || 'N/A'}</span>
-                                <span className="font-bold text-lg">{(account.available_balance ?? account.balance ?? 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                <span className="font-bold text-2xl">{(account.available_balance ?? account.balance ?? 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                               </div>
-                              <div className="flex justify-end pt-2 border-t-2 border-dashed border-black/20">
+                              <div className="flex justify-end pt-3 mt-1 border-t-4 border-dashed border-black/20">
                                 <WalletManageModal account={account} />
                               </div>
                             </div>
@@ -188,14 +216,14 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
           </div>
         </div>
 
-        {/* Right Column - Orders & Documents */}
-        <div className="space-y-8">
+        {/* Right Column - Orders & Documents min-w-0 */}
+        <div className="space-y-4 min-w-0">
           
-          <div className="brutal-card bg-white p-6 md:p-8">
-             <div className="flex items-center justify-between mb-6 border-b-4 border-black pb-2">
+          <div className="bg-white border-4 border-black p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] min-w-0">
+             <div className="flex items-center justify-between mb-4 border-b-4 border-black pb-3">
                 <div className="flex items-center gap-2">
                   <History className="w-5 h-5" />
-                  <h3 className="font-black uppercase tracking-widest text-sm">
+                  <h3 className="font-black uppercase tracking-widest text-lg">
                     Order History
                   </h3>
                 </div>
@@ -203,22 +231,22 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
              
              <div className="space-y-3">
                {(!orders || orders.length === 0) ? (
-                 <p className="text-xs font-bold uppercase opacity-50 text-center py-8 border-2 border-dashed border-black/20">No orders found</p>
+                 <p className="text-sm font-bold uppercase opacity-50 text-center py-6 border-4 border-dashed border-black/20">No orders found</p>
                ) : (
                  orders.map((order: any) => (
-                   <div key={order.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-2 border-black bg-slate-50 gap-4 group hover:bg-black hover:text-white transition-colors">
-                     <div className="flex flex-col gap-1">
+                   <div key={order.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-4 border-black bg-slate-50 gap-4 group hover:bg-black hover:text-white transition-colors min-w-0">
+                     <div className="flex flex-col gap-1.5 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-black uppercase text-xs">{order.service?.name}</span>
-                          <span className="text-[10px] font-bold uppercase bg-white text-black px-1 border border-black">{order.status}</span>
+                          <span className="font-black uppercase text-sm truncate">{order.service?.name}</span>
+                          <span className="text-xs font-bold uppercase bg-white text-black px-2 py-0.5 border-2 border-black shrink-0">{order.status}</span>
                         </div>
-                        <span className="font-mono text-[10px] opacity-60">ID: {order.id} | {new Date(order.created_at).toLocaleDateString()}</span>
+                        <span className="font-mono text-xs opacity-60 truncate">ID: {order.id} | {new Date(order.created_at).toLocaleDateString()}</span>
                      </div>
-                     <div className="flex items-center gap-4">
-                       <span className="font-black font-mono">
+                     <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
+                       <span className="font-black font-mono text-lg">
                          {order.total ? order.total.toLocaleString(undefined, {minimumFractionDigits: 2}) : (order.amount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})} {order.currency}
                        </span>
-                       <Link href={`/orders/${order.id}`} className="p-2 border-2 border-black bg-white text-black group-hover:bg-white group-hover:text-black">
+                       <Link href={`/orders/${order.id}`} className="p-2 border-4 border-black bg-white text-black group-hover:bg-white group-hover:text-black">
                          <ArrowUpRight className="w-4 h-4" />
                        </Link>
                      </div>
@@ -228,25 +256,25 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
              </div>
           </div>
 
-          <div className="brutal-card bg-white p-6 md:p-8">
-             <div className="flex items-center gap-2 mb-6 border-b-4 border-black pb-2">
+          <div className="bg-white border-4 border-black p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] min-w-0">
+             <div className="flex items-center gap-2 mb-4 border-b-4 border-black pb-3">
                 <FileText className="w-5 h-5" />
-                <h3 className="font-black uppercase tracking-widest text-sm">
+                <h3 className="font-black uppercase tracking-widest text-lg">
                   Document Vault
                 </h3>
              </div>
              
-             <div className="grid sm:grid-cols-2 gap-4">
+             <div className="grid sm:grid-cols-2 gap-4 min-w-0">
                {(!documents || documents.length === 0) ? (
-                 <p className="text-xs font-bold uppercase opacity-50 text-center py-8 col-span-2 border-2 border-dashed border-black/20">No documents found</p>
+                 <p className="text-sm font-bold uppercase opacity-50 text-center py-6 col-span-2 border-4 border-dashed border-black/20">No documents found</p>
                ) : (
                  documents.map((doc: any) => (
-                   <a href={doc.file_url} target="_blank" rel="noopener noreferrer" key={doc.id} className="p-4 border-2 border-black bg-slate-50 flex items-center justify-between hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-1 hover:-translate-x-1 cursor-pointer">
-                     <div className="flex flex-col">
-                        <span className="font-bold text-sm truncate max-w-[150px]">{doc.document_type?.name || doc.name || 'Document'}</span>
-                        <span className="text-[10px] font-bold uppercase opacity-60 mt-1">{new Date(doc.created_at).toLocaleDateString()}</span>
+                   <a href={doc.file_url} target="_blank" rel="noopener noreferrer" key={doc.id} className="p-4 border-4 border-black bg-slate-50 flex items-center justify-between hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-1 hover:-translate-x-1 cursor-pointer min-w-0">
+                     <div className="flex flex-col min-w-0 pr-2">
+                        <span className="font-bold text-base truncate">{doc.document_type?.name || doc.name || 'Document'}</span>
+                        <span className="text-xs font-bold uppercase opacity-60 mt-1">{new Date(doc.created_at).toLocaleDateString()}</span>
                      </div>
-                     <ArrowUpRight className="w-4 h-4 opacity-50" />
+                     <ArrowUpRight className="w-5 h-5 opacity-50 shrink-0" />
                    </a>
                  ))
                )}
