@@ -22,12 +22,16 @@ export class BuyForMeService {
 
     // 2. Build the metadata payload
     const metadata: BuyForMeMetadata = {
+      website: data.website,
       product_url: data.productUrl,
+      product_name: data.productName,
+      product_image: data.productImage,
+      variant: data.variant,
+      notes: data.notes,
       specifications: {
         quantity: data.quantity,
         color: data.color,
         size: data.size,
-        special_instructions: data.specialInstructions
       },
       shipping_address: data.shippingAddress
     }
@@ -38,14 +42,14 @@ export class BuyForMeService {
       metadata: metadata as Record<string, any>,
       amount: 0, // Admin will set this during the Quote phase
       currency: 'USD',
-      notes: `Buy For Me Request: ${data.productUrl}`
+      notes: data.notes || `Buy For Me Request: ${data.productName}`
     }, profileId)
   }
 
   /**
    * Admin function: Attach a quote to a request
    */
-  async attachQuote(orderId: string, basePrice: number, shippingFee: number, serviceFee: number, currency: string = 'USD') {
+  async attachQuote(orderId: string, basePrice: number, shippingFee: number, serviceFee: number, tax: number = 0, discount: number = 0, currency: string = 'USD') {
     // 1. Fetch current request to get existing metadata
     const { data: order, error: orderError } = await this.supabase
       .from('service_requests')
@@ -58,7 +62,7 @@ export class BuyForMeService {
     }
 
     const currentMetadata = order.metadata as unknown as BuyForMeMetadata
-    const totalFee = basePrice + shippingFee + serviceFee
+    const totalFee = basePrice + shippingFee + serviceFee + tax - discount
 
     // 2. Update the metadata and total amount
     const updatedMetadata: BuyForMeMetadata = {
@@ -66,6 +70,8 @@ export class BuyForMeService {
       base_price: basePrice,
       shipping_fee: shippingFee,
       service_fee: serviceFee,
+      tax: tax,
+      discount: discount,
       total_fee: totalFee,
       currency
     }
@@ -77,6 +83,8 @@ export class BuyForMeService {
         metadata: updatedMetadata as any,
         amount: basePrice,
         service_fee: serviceFee + shippingFee, // We bundle shipping into service fee for the base columns
+        tax: tax,
+        discount: discount,
         total: totalFee,
         currency,
         updated_at: new Date().toISOString()

@@ -118,11 +118,26 @@ export interface ExchangeMetadata {
 }
 
 export interface BuyForMeMetadata {
-  store: string;
+  website: string;
   product_name: string;
-  product_url?: string;
-  product_details?: string;
+  product_url: string;
+  product_image?: string;
   quantity: number;
+  variant?: string;
+  notes?: string;
+  // Specifications block for legacy support / extra details
+  specifications?: {
+    color?: string;
+    size?: string;
+    special_instructions?: string;
+  };
+  shipping_address?: {
+    street: string;
+    city: string;
+    state: string;
+    country: string;
+    zip_code: string;
+  };
 }
 
 export interface TicketMetadata {

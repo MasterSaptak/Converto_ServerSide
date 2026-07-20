@@ -204,7 +204,7 @@ export async function deleteCustomerCompletely(id: string): Promise<{ success: b
   return { success: true }
 }
 
-export async function manageCPoints(customerId: string, type: 'add' | 'remove', amount: number, description: string) {
+export async function manageCPoints(customerId: string, type: 'add' | 'remove', amount: number, description: string, resetLifetime?: boolean) {
   try {
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -233,6 +233,10 @@ export async function manageCPoints(customerId: string, type: 'add' | 'remove', 
       if (newAvailable < 0) {
         return { success: false, error: 'Insufficient C-Points to deduct' }
       }
+    }
+
+    if (resetLifetime) {
+      newLifetime = 0;
     }
 
     // 2. Update or Insert rewards
@@ -275,6 +279,7 @@ export async function manageCPoints(customerId: string, type: 'add' | 'remove', 
     }
 
     revalidatePath(`/customers/${customerId}`)
+    revalidatePath('/customers/[id]', 'page')
     return { success: true }
   } catch (err: any) {
     console.error('Error in manageCPoints:', err)

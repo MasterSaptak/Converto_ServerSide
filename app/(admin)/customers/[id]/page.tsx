@@ -10,6 +10,38 @@ import { StaffToggleButton } from './StaffToggleButton'
 import { DeleteUserModal } from './DeleteUserModal'
 import { ManageCPointsModal } from './ManageCPointsModal'
 
+const REWARD_TIERS = [
+  { name: 'Wood', minPoints: 0 },
+  { name: 'Stone', minPoints: 2500 },
+  { name: 'Iron', minPoints: 15000 },
+  { name: 'Bronze', minPoints: 30000 },
+  { name: 'Silver', minPoints: 50000 },
+  { name: 'Gold', minPoints: 75000 },
+  { name: 'Platinum', minPoints: 100000 },
+  { name: 'Diamond', minPoints: 150000 },
+  { name: 'Obsidian', minPoints: 200000 },
+  { name: 'Ruby', minPoints: 300000 },
+  { name: 'Sapphire', minPoints: 400000 },
+  { name: 'Emerald', minPoints: 500000 },
+  { name: 'Amethyst', minPoints: 600000 },
+  { name: 'Titanium', minPoints: 700000 },
+  { name: 'Vibranium', minPoints: 800000 },
+  { name: 'Antimatter', minPoints: 900000 },
+  { name: 'Black Card', minPoints: 1000000 },
+];
+
+function getDynamicTier(points: number) {
+  let currentTier = REWARD_TIERS[0].name;
+  for (let i = 0; i < REWARD_TIERS.length; i++) {
+    if (points >= REWARD_TIERS[i].minPoints) {
+      currentTier = REWARD_TIERS[i].name;
+    } else {
+      break;
+    }
+  }
+  return currentTier;
+}
+
 export default async function CustomerProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const cookieStore = await cookies()
@@ -135,7 +167,15 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
                       <div className="flex flex-col bg-slate-50 p-3 border-2 border-black">
                         <span className="text-xs font-black uppercase tracking-widest opacity-60">Joined</span>
                         <p className="font-bold text-sm truncate">
-                          {new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(new Date(customer.created_at))}
+                          {new Intl.DateTimeFormat('en-US', { 
+                            weekday: 'long',
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                          }).format(new Date(customer.created_at))}
                         </p>
                       </div>
                     </>
@@ -167,7 +207,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
                   </div>
                   <div className="p-3 bg-white border-4 border-black">
                     <span className="text-xs font-black uppercase tracking-widest opacity-60 block">Tier</span>
-                    <span className="font-black text-xl uppercase">{rewards?.tier || 'Bronze'}</span>
+                    <span className="font-black text-xl uppercase">{getDynamicTier(rewards?.available_c_points || 0)}</span>
                   </div>
                 </div>
 

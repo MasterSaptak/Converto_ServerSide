@@ -15,8 +15,10 @@ export function BuyForMeQuote({ order }: QuoteProps) {
   const [basePrice, setBasePrice] = useState(order.metadata?.base_price || 0)
   const [shippingFee, setShippingFee] = useState(order.metadata?.shipping_fee || 0)
   const [serviceFee, setServiceFee] = useState(order.metadata?.service_fee || 0)
+  const [tax, setTax] = useState(order.metadata?.tax || 0)
+  const [discount, setDiscount] = useState(order.metadata?.discount || 0)
 
-  const total = Number(basePrice) + Number(shippingFee) + Number(serviceFee)
+  const total = Number(basePrice) + Number(shippingFee) + Number(serviceFee) + Number(tax) - Number(discount)
 
   const handleSubmitQuote = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,6 +32,8 @@ export function BuyForMeQuote({ order }: QuoteProps) {
         base_price: Number(basePrice),
         shipping_fee: Number(shippingFee),
         service_fee: Number(serviceFee),
+        tax: Number(tax),
+        discount: Number(discount),
         total_fee: total
       }
 
@@ -39,8 +43,11 @@ export function BuyForMeQuote({ order }: QuoteProps) {
           metadata: newMetadata,
           amount: Number(basePrice),
           service_fee: Number(shippingFee) + Number(serviceFee),
+          tax: Number(tax),
+          discount: Number(discount),
           total: total,
           status_code: 'quote_sent',
+
           updated_at: new Date().toISOString()
         })
         .eq('id', order.id)
@@ -114,7 +121,7 @@ export function BuyForMeQuote({ order }: QuoteProps) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest opacity-80">Converto Service Fee</label>
+            <label className="text-[10px] font-black uppercase tracking-widest opacity-80">Service Fee</label>
             <div className="flex">
               <div className="bg-black text-white p-3 border-y-2 border-l-2 border-black font-black">$</div>
               <input 
@@ -124,6 +131,36 @@ export function BuyForMeQuote({ order }: QuoteProps) {
                 value={serviceFee}
                 onChange={(e) => setServiceFee(e.target.value)}
                 className="w-full p-3 border-2 border-black font-bold outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest opacity-80">Tax</label>
+            <div className="flex">
+              <div className="bg-black text-white p-3 border-y-2 border-l-2 border-black font-black">$</div>
+              <input 
+                type="number"
+                step="0.01"
+                required
+                value={tax}
+                onChange={(e) => setTax(e.target.value)}
+                className="w-full p-3 border-2 border-black font-bold outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-green-700">Discount</label>
+            <div className="flex">
+              <div className="bg-green-700 text-white p-3 border-y-2 border-l-2 border-black font-black">-$</div>
+              <input 
+                type="number"
+                step="0.01"
+                required
+                value={discount}
+                onChange={(e) => setDiscount(e.target.value)}
+                className="w-full p-3 border-2 border-black font-bold outline-none text-green-700"
               />
             </div>
           </div>

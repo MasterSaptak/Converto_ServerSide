@@ -14,6 +14,7 @@ import { BuyForMeQuote } from '@/components/admin/orders/buy-for-me-quote'
 import { TicketQuote } from '@/components/admin/orders/ticket-quote'
 import { EducationQuote } from '@/components/admin/orders/education-quote'
 import { GlobalPaymentsQuote } from '@/components/admin/orders/global-payments-quote'
+import { ExchangeQuote } from '@/components/admin/orders/exchange-quote'
 
 const statusStyles: Record<string, string> = {
   'Draft': 'bg-slate-100 text-slate-800 border-slate-400',
@@ -136,6 +137,9 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
           )}
           {order.service?.code === 'global_payments' && (
             <GlobalPaymentsQuote order={order} />
+          )}
+          {order.service?.code === 'exchange' && (
+            <ExchangeQuote order={order} />
           )}
 
           {/* Main Info */}

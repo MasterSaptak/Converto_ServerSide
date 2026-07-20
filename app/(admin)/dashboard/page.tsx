@@ -43,7 +43,7 @@ export default async function DashboardPage() {
   // ── Fetch all service requests ──────────────────────
   const { data: allOrders, count: totalRequests } = await supabaseAdmin
     .from('service_requests')
-    .select('id, status, total, currency, created_at, profile_id, service_id', { count: 'exact' })
+    .select('id, status, total, currency, created_at, profile_id, service_id, metadata', { count: 'exact' })
 
   // ── Fetch services for code lookup ──────────────────
   const { data: services } = await supabaseAdmin
@@ -60,6 +60,12 @@ export default async function DashboardPage() {
   let educationCount = 0
   let globalPaymentsCount = 0
   let totalRevenue = 0
+
+  // Insta Orders stats
+  let instaOrdersCount = 0
+  let waitingInstaOrders = 0
+  let acceptedInstaOrders = 0
+  let completedInstaOrders = 0
 
   // Pending action counts
   let submittedCount = 0
@@ -85,6 +91,27 @@ export default async function DashboardPage() {
       if (order.status === 'Submitted') submittedCount++
       if (['Waiting Payment', 'Quote Sent'].includes(order.status)) waitingPaymentCount++
       if (order.status === 'Processing') processingCount++
+
+      // Insta Orders
+      let metadataObj = order.metadata
+      if (typeof metadataObj === 'string') {
+        try { metadataObj = JSON.parse(metadataObj) } catch (e) {}
+      }
+      
+      const isInstaOrder = (metadataObj as any)?.is_insta_order === true || (metadataObj as any)?.is_insta_order === 'true'
+      
+      if (isInstaOrder) {
+        const orderDate = new Date(order.created_at)
+        const now = new Date()
+        // Within last 24 hours to avoid timezone Midnight bugs
+        if ((now.getTime() - orderDate.getTime()) < 24 * 60 * 60 * 1000) {
+          instaOrdersCount++
+        }
+        // Count all for waiting/accepted/completed regardless of date
+        if (order.status === 'Submitted') waitingInstaOrders++
+        if (order.status === 'Accepted') acceptedInstaOrders++
+        if (order.status === 'Completed') completedInstaOrders++
+      }
     }
   }
 
@@ -157,6 +184,26 @@ export default async function DashboardPage() {
         ))}
       </div>
 
+      {/* Insta Orders KPI Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="brutal-card-compact p-4 bg-yellow-300 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] flex flex-col justify-between">
+          <p className="text-[10px] font-black uppercase tracking-widest text-yellow-900">⚡ Today's Insta Orders</p>
+          <p className="text-3xl font-black mt-1 text-black">{instaOrdersCount}</p>
+        </div>
+        <div className="brutal-card-compact p-4 bg-red-100 flex flex-col justify-between">
+          <p className="text-[10px] font-black uppercase tracking-widest text-red-900">Waiting (SLA Risk)</p>
+          <p className="text-3xl font-black text-red-600 mt-1">{waitingInstaOrders}</p>
+        </div>
+        <div className="brutal-card-compact p-4 bg-blue-100 flex flex-col justify-between">
+          <p className="text-[10px] font-black uppercase tracking-widest text-blue-900">Accepted</p>
+          <p className="text-3xl font-black text-blue-600 mt-1">{acceptedInstaOrders}</p>
+        </div>
+        <div className="brutal-card-compact p-4 bg-green-100 flex flex-col justify-between">
+          <p className="text-[10px] font-black uppercase tracking-widest text-green-900">Completed</p>
+          <p className="text-3xl font-black text-green-600 mt-1">{completedInstaOrders}</p>
+        </div>
+      </div>
+
       {/* Main Bento Grid — 3 columns */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Left: Recent Orders + Pending Actions (span 2) */}
@@ -204,7 +251,14 @@ export default async function DashboardPage() {
                              <div className="w-7 h-7 bg-accent border-2 border-border font-black flex items-center justify-center text-[10px] text-accent-foreground shrink-0">
                                {(order.profile as any)?.full_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
                              </div>
-                             <span className="font-bold text-sm truncate max-w-[120px]">{(order.profile as any)?.full_name || 'Unknown'}</span>
+                             <div className="flex flex-col">
+                               <span className="font-bold text-sm truncate max-w-[120px]">{(order.profile as any)?.full_name || 'Unknown'}</span>
+                               {(order.metadata as any)?.is_insta_order && (
+                                 <span className="text-[8px] bg-yellow-300 text-yellow-900 font-black uppercase px-1 py-0.5 border border-black inline-flex items-center gap-0.5 mt-0.5 w-max">
+                                   ⚡ Insta Order
+                                 </span>
+                               )}
+                             </div>
                            </div>
                          </td>
                          <td className="px-4 py-2.5">

@@ -29,11 +29,15 @@ export async function POST(req: Request) {
     
     // Create the order via the module's service
     const order = await buyForMeService.createRequest(user.id, {
+      website: data.website,
       productUrl: data.productUrl,
+      productName: data.productName,
+      productImage: data.productImage,
       quantity: parseInt(data.quantity) || 1,
+      variant: data.variant,
+      notes: data.notes,
       color: data.color,
       size: data.size,
-      specialInstructions: data.specialInstructions,
       shippingAddress: data.shippingAddress
     })
 
