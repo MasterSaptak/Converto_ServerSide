@@ -162,7 +162,7 @@ export function RealtimeNotifications() {
         .eq('status', 'Submitted')
       
       if (data) {
-        const pendingInstaOrders = data.filter(order => {
+        const pendingInstaOrders = data.filter((order: any) => {
           let metadataObj = order.metadata
           if (typeof metadataObj === 'string') {
             try { metadataObj = JSON.parse(metadataObj) } catch(e){}
@@ -188,7 +188,7 @@ export function RealtimeNotifications() {
           schema: 'public',
           table: 'service_requests',
         },
-        async (payload) => {
+        async (payload: any) => {
           console.log('New Order Received!', payload)
           
           let metadataObj = payload.new.metadata || {};
