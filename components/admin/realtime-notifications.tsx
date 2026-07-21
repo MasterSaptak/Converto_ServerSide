@@ -152,9 +152,23 @@ export function RealtimeNotifications() {
   const router = useRouter()
   const [activeInstaOrders, setActiveInstaOrders] = useState<any[]>([])
   const supabase = createClient()
+  const activeOrdersRef = useRef<any[]>([])
+
+  // Keep a ref synced with state so intervals can access latest data
+  useEffect(() => {
+    activeOrdersRef.current = activeInstaOrders
+  }, [activeInstaOrders])
 
   useEffect(() => {
-    // Fetch existing unassigned Insta Orders on mount
+    const alertSound = typeof window !== 'undefined' ? new Audio('/ding.mp3') : null
+    
+    const playAlert = () => {
+      if (alertSound) {
+        alertSound.currentTime = 0
+        alertSound.play().catch(e => console.log('Audio autoplay blocked by browser. Please interact with the page first.', e))
+      }
+    }
+
     const fetchPendingOrders = async () => {
       const { data } = await supabase
         .from('service_requests')
@@ -169,16 +183,25 @@ export function RealtimeNotifications() {
           }
           return metadataObj?.is_insta_order === true || metadataObj?.is_insta_order === 'true'
         })
-        setActiveInstaOrders(pendingInstaOrders)
+
+        // Identify truly new orders that aren't already active
+        const existingIds = new Set(activeOrdersRef.current.map(o => o.id))
+        const newOrders = pendingInstaOrders.filter(o => !existingIds.has(o.id))
+        
+        if (newOrders.length > 0) {
+          setActiveInstaOrders(prev => [...prev, ...newOrders])
+          playAlert()
+        }
       }
     }
     
+    // Initial fetch
     fetchPendingOrders()
-  }, [supabase])
 
-  useEffect(() => {
-    const alertSound = typeof window !== 'undefined' ? new Audio('/ding.mp3') : null
+    // Robust Polling Fallback (Every 5 seconds) - Catches anything Realtime misses!
+    const pollInterval = setInterval(fetchPendingOrders, 5000)
 
+    // Realtime Websocket
     const channel = supabase
       .channel('service_requests_changes')
       .on(
@@ -189,7 +212,7 @@ export function RealtimeNotifications() {
           table: 'service_requests',
         },
         async (payload: any) => {
-          console.log('New Order Received!', payload)
+          console.log('Realtime New Order Received!', payload)
           
           let metadataObj = payload.new.metadata || {};
           if (typeof metadataObj === 'string') {
@@ -198,20 +221,18 @@ export function RealtimeNotifications() {
           const isInstaOrder = metadataObj?.is_insta_order === true || metadataObj?.is_insta_order === 'true';
 
           if (isInstaOrder) {
-            // Fetch full order to get profile (name/phone)
             const { data } = await supabase
               .from('service_requests')
               .select('*, profile:profiles(full_name, phone)')
               .eq('id', payload.new.id)
               .single()
             
-            if (data) {
+            if (data && !activeOrdersRef.current.some(o => o.id === data.id)) {
               setActiveInstaOrders(prev => [...prev, data])
-              if (alertSound) alertSound.play().catch(e => console.log('Audio fail', e))
+              playAlert()
             }
           } else {
-            // Regular request toast (auto dismisses)
-            if (alertSound) alertSound.play().catch(e => console.log('Audio fail', e))
+            playAlert()
             toast.custom((t) => (
               <div
                 className={`${
@@ -244,9 +265,12 @@ export function RealtimeNotifications() {
           }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Supabase Realtime Status:', status)
+      })
 
     return () => {
+      clearInterval(pollInterval)
       supabase.removeChannel(channel)
     }
   }, [router, supabase])

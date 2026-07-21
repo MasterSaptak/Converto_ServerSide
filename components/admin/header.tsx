@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { NotificationBell } from './NotificationBell'
+import { GlobalSearch } from './GlobalSearch'
 
 export function Header() {
   const router = useRouter()
@@ -102,14 +103,7 @@ export function Header() {
     <>
       <header className="h-14 md:h-16 border-b-4 border-border bg-card flex items-center justify-between pl-14 pr-3 md:px-6 sticky top-0 z-30">
         <div className="hidden md:flex items-center gap-4 flex-1">
-          <div className="relative max-w-md w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <input 
-              type="text" 
-              placeholder="Search requests, users, transactions..."
-              className="w-full pl-10 pr-4 py-2 border-2 border-border font-bold focus:outline-none focus:bg-accent focus:text-accent-foreground transition-all placeholder:text-muted-foreground bg-transparent text-foreground"
-            />
-          </div>
+          <GlobalSearch />
         </div>
         <h1 className="md:hidden text-sm font-black uppercase tracking-wider text-foreground">Converto Ops</h1>
 

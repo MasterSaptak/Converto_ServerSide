@@ -28,7 +28,7 @@ export async function OrderTimeline({ orderId }: { orderId: string }) {
         <Activity className="w-4 h-4" /> Timeline
       </h3>
 
-      <form action={async (formData: FormData) => { await addOrderNote(formData) }} className="mb-6 flex flex-col gap-2 bg-yellow-100 p-3 border-2 border-black">
+      <form action={addOrderNote} className="mb-6 flex flex-col gap-2 bg-yellow-100 p-3 border-2 border-black">
         <input type="hidden" name="orderId" value={orderId} />
         <label className="text-[10px] font-black uppercase tracking-widest text-yellow-900">Quick Internal Note</label>
         <textarea 
