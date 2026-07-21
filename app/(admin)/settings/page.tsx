@@ -18,6 +18,7 @@ import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { requireStaffRole } from '@/lib/rbac'
 import { logAuditAction } from '@/lib/audit'
+import { WorkflowsTab } from './components/workflows-tab'
 
 async function saveSettings(formData: FormData) {
   'use server'
@@ -125,6 +126,7 @@ export default async function SettingsPage() {
                   { label: 'Notifications', value: 'notifications', icon: Bell },
                   { label: 'Database', value: 'database', icon: Database },
                   { label: 'AI & Automations', value: 'ai', icon: Cpu },
+                  { label: 'Workflows', value: 'workflows', icon: Cloud },
                 ].map(tab => (
                   <TabsTrigger key={tab.value} value={tab.value} className="flex-1 min-w-[120px] h-full rounded-none font-black uppercase text-xs data-[state=active]:bg-accent data-[state=active]:border-black border-r-2 border-black last:border-0">
                      <div className="flex items-center gap-2">
@@ -234,6 +236,10 @@ export default async function SettingsPage() {
                       </div>
                    </div>
                 </div>
+             </TabsContent>
+             
+             <TabsContent value="workflows" className="flex-1 p-8 m-0">
+                <WorkflowsTab />
              </TabsContent>
           </Tabs>
         </div>

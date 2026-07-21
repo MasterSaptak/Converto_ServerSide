@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import Link from 'next/link'
-import { ArrowLeft, Save, ArrowUpRight } from 'lucide-react'
+import { ArrowLeft, Save, ArrowUpRight, Activity } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import type { ServiceRequest } from '@/types/database'
 import { revalidatePath } from 'next/cache'
@@ -9,30 +9,25 @@ import { NotificationService } from '@/lib/services/notifications'
 import { OrderTimeline } from './components/timeline'
 import { OrderDocuments } from './components/documents'
 import { OrderAssignments } from './components/assignments'
+import { RequestTasks } from './components/request-tasks'
+import { RequestFlags } from './components/request-flags'
+import { RequestWorkflowHistory } from './components/request-history'
 import { OrderPayments } from '@/components/admin/orders/payments'
 import { BuyForMeQuote } from '@/components/admin/orders/buy-for-me-quote'
 import { TicketQuote } from '@/components/admin/orders/ticket-quote'
 import { EducationQuote } from '@/components/admin/orders/education-quote'
 import { GlobalPaymentsQuote } from '@/components/admin/orders/global-payments-quote'
 import { ExchangeQuote } from '@/components/admin/orders/exchange-quote'
+import { evaluateWorkflowEvents, evaluateWorkflowRules } from '@/lib/workflow-engine'
 
-const statusStyles: Record<string, string> = {
-  'Draft': 'bg-slate-100 text-slate-800 border-slate-400',
-  'Submitted': 'bg-blue-100 text-blue-800 border-blue-400',
-  'Verifying': 'bg-indigo-100 text-indigo-800 border-indigo-400',
-  'Processing': 'bg-yellow-100 text-yellow-800 border-yellow-400',
-  'Quote Sent': 'bg-purple-100 text-purple-800 border-purple-400',
-  'Awaiting Payment': 'bg-orange-100 text-orange-800 border-orange-400',
-  'Payment Confirmed': 'bg-teal-100 text-teal-800 border-teal-400',
-  'Completed': 'bg-green-100 text-green-800 border-green-400',
-  'Cancelled': 'bg-red-100 text-red-800 border-red-400',
-  'Rejected': 'bg-red-100 text-red-800 border-red-400',
-}
+// Deprecated: legacy status styles
+// const statusStyles: Record<string, string> = { ... }
 
 async function updateRequestStatus(formData: FormData) {
   'use server'
   const id = formData.get('id') as string
-  const status = formData.get('status') as string
+  const status_id = formData.get('status_id') as string
+  const stage_id = formData.get('stage_id_' + status_id) as string // We'll pass this via a hidden input or parse it
   
   const cookieStore = await cookies()
   const supabase = createServerClient(
@@ -46,33 +41,44 @@ async function updateRequestStatus(formData: FormData) {
     }
   )
 
-  // Get current request to check status change and get profile_id
   const { data: currentReq } = await supabase
     .from('service_requests')
-    .select('status, profile_id')
+    .select('pipeline_status_id, profile_id, pipeline_stage_id')
     .eq('id', id)
     .single();
 
-  if (currentReq && currentReq.status !== status) {
+  if (currentReq && currentReq.pipeline_status_id !== status_id) {
+    // 1. Get the new status details
+    const { data: newStatus } = await supabase.from('pipeline_statuses').select('*, stage:pipeline_stages(*)').eq('id', status_id).single();
+
+    // 2. Update the Request
     await supabase
       .from('service_requests')
-      .update({ status, updated_at: new Date().toISOString() })
+      .update({ 
+        pipeline_status_id: status_id, 
+        pipeline_stage_id: newStatus.stage_id,
+        updated_at: new Date().toISOString() 
+      })
       .eq('id', id)
     
-    // Log timeline event
-    await supabase.from('order_events').insert({
-      order_id: id,
-      event_type: 'status_changed',
-      remarks: `Status changed from ${currentReq.status} to ${status}`
+    // 3. Log History
+    await supabase.from('request_workflow_history').insert({
+      request_id: id,
+      new_stage: newStatus.stage.name,
+      new_status: newStatus.name,
+      remarks: 'Status updated via Action Panel'
     });
     
-    // Dispatch notification
-    const notificationService = new NotificationService(supabase);
-    await notificationService.notifyRequestUpdate(currentReq.profile_id, id, status);
+    // 4. Automation Engine
+    // Execute events tied to the new status
+    await evaluateWorkflowEvents(supabase, id, status_id);
+    
+    // Evaluate rules that might auto-transition from this status
+    await evaluateWorkflowRules(supabase, id, status_id);
   }
 
-  revalidatePath(`/orders/${id}`)
-  revalidatePath('/orders')
+  revalidatePath(`/requests/${id}`)
+  revalidatePath('/requests')
 }
 
 export default async function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -91,9 +97,19 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
 
   const { data: order } = await supabase
     .from('service_requests')
-    .select('*, profile:profiles(*), service:services(*)')
+    .select(`
+      *, 
+      profile:profiles!service_requests_profile_id_fkey(*), 
+      service:services(*),
+      stage:pipeline_stages(*),
+      status_obj:pipeline_statuses(*)
+    `)
     .eq('id', id)
     .single()
+
+  // Fetch all stages and statuses for the selector
+  const { data: stages } = await supabase.from('pipeline_stages').select('*').order('display_order');
+  const { data: statuses } = await supabase.from('pipeline_statuses').select('*').order('display_order');
 
   if (!order) {
     notFound()
@@ -104,15 +120,18 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-10">
       <div className="flex items-center gap-4">
-        <Link href="/orders" className="brutal-button p-3 bg-white">
+        <Link href="/requests" className="brutal-button p-3 bg-white">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h2 className="text-4xl font-black tracking-tight uppercase">Order Details</h2>
+          <h2 className="text-4xl font-black tracking-tight uppercase">Request Details</h2>
           <div className="flex items-center gap-3 mt-2">
             <span className="font-mono text-black/60 font-bold uppercase tracking-widest text-[10px]">ID: {order.id}</span>
-            <span className={`border-2 px-2 py-0.5 font-black uppercase text-[10px] tracking-widest ${statusStyles[order.status] || 'bg-slate-100'}`}>
-              {order.status}
+            <span className="flex items-center gap-2 border-2 px-2 py-0.5 font-black uppercase text-[10px] tracking-widest bg-white">
+              <Activity className="w-3 h-3" />
+              {order.stage?.name || 'Unknown Stage'}
+              <span className="text-black/30">/</span>
+              <span style={{ color: order.status_obj?.color || 'inherit' }}>{order.status_obj?.name || 'Unknown Status'}</span>
             </span>
             <span className="border-2 px-2 py-0.5 font-black uppercase text-[10px] tracking-widest bg-accent">
               {order.service?.name}
@@ -253,17 +272,16 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
               
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest opacity-60">Transition Status</label>
-                <select name="status" defaultValue={order.status} className="brutal-input w-full font-bold">
-                  <option value="Draft">Draft</option>
-                  <option value="Submitted">Submitted</option>
-                  <option value="Verifying">Verifying</option>
-                  <option value="Processing">Processing</option>
-                  <option value="Quote Sent">Quote Sent</option>
-                  <option value="Awaiting Payment">Awaiting Payment</option>
-                  <option value="Payment Confirmed">Payment Confirmed</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Cancelled">Cancelled</option>
-                  <option value="Rejected">Rejected</option>
+                <select name="status_id" defaultValue={order.pipeline_status_id || ''} className="brutal-input w-full font-bold bg-white">
+                  {stages?.map(stage => (
+                    <optgroup key={stage.id} label={stage.name}>
+                      {statuses?.filter(s => s.stage_id === stage.id).map(status => (
+                        <option key={status.id} value={status.id}>
+                          {status.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
                 </select>
               </div>
 
@@ -273,10 +291,11 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
             </form>
           </div>
 
+          <RequestFlags requestId={order.id} />
+          <RequestTasks requestId={order.id} />
           <OrderAssignments orderId={order.id} />
-          
           <OrderDocuments orderId={order.id} />
-          
+          <RequestWorkflowHistory requestId={order.id} />
           <OrderTimeline orderId={order.id} />
 
         </div>

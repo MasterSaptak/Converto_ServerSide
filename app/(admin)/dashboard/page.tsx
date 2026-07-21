@@ -43,7 +43,7 @@ export default async function DashboardPage() {
   // ── Fetch all service requests ──────────────────────
   const { data: allOrders, count: totalRequests } = await supabaseAdmin
     .from('service_requests')
-    .select('id, status, total, currency, created_at, profile_id, service_id, metadata', { count: 'exact' })
+    .select('id, status, amount, currency, created_at, profile_id, service_id, metadata', { count: 'exact' })
 
   // ── Fetch services for code lookup ──────────────────
   const { data: services } = await supabaseAdmin
@@ -83,8 +83,8 @@ export default async function DashboardPage() {
       if (code === 'education') educationCount++
       if (code === 'global_payments') globalPaymentsCount++
 
-      if (order.status === 'Completed' && order.total) {
-        totalRevenue += order.total
+      if (order.status === 'Completed' && order.amount) {
+        totalRevenue += order.amount
       }
 
       // Pending actions
@@ -271,8 +271,8 @@ export default async function DashboardPage() {
                             </span>
                          </td>
                          <td className="px-4 py-2.5 font-bold text-xs text-foreground">
-                           {order.total != null
-                             ? `${order.currency || '$'}${Number(order.total).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                           {order.amount != null
+                             ? `${order.currency || '$'}${Number(order.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
                              : <span className="text-muted-foreground">—</span>
                            }
                          </td>

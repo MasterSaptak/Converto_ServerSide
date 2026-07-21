@@ -38,7 +38,7 @@ export default async function CustomersPage({
   // Fetch aggregate order counts and totals per profile_id
   const { data: allOrders } = await supabase
     .from('service_requests')
-    .select('profile_id, total, status')
+    .select('profile_id, amount, status')
 
   // Build a lookup map: profile_id -> { count, spent }
   const customerStats: Record<string, { count: number; spent: number; active: boolean }> = {}
@@ -48,7 +48,7 @@ export default async function CustomersPage({
         customerStats[order.profile_id] = { count: 0, spent: 0, active: false }
       }
       customerStats[order.profile_id].count++
-      customerStats[order.profile_id].spent += order.total || 0
+      customerStats[order.profile_id].spent += order.amount || 0
       // If ANY order is not completed/cancelled, the customer is "Active"
       if (!['Completed', 'Cancelled', 'Rejected', 'Refunded'].includes(order.status)) {
         customerStats[order.profile_id].active = true

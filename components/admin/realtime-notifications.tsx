@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'react-hot-toast'
 import { Bell, Check, Phone, ExternalLink } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { acceptInstaOrder } from '@/app/(admin)/orders/actions'
+import { acceptInstaOrder } from '@/app/(admin)/requests/actions'
 
 // Custom Component for Persistent Insta Order Alerts
 function InstaOrderCard({ order, onAccept, onDismiss }: { order: any, onAccept: (id: string) => void, onDismiss: (id: string) => void }) {
@@ -128,7 +128,7 @@ function InstaOrderCard({ order, onAccept, onDismiss }: { order: any, onAccept: 
                   )}
 
                   <button 
-                    onClick={() => router.push(`/orders/${order.id}`)}
+                    onClick={() => router.push(`/requests/${order.id}`)}
                     className="bg-blue-400 text-black font-black uppercase tracking-widest px-3 py-2 border-2 border-black shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-y-0.5 hover:translate-x-0.5 hover:shadow-none transition-all flex items-center justify-center"
                     title="Open Details"
                   >
@@ -240,7 +240,7 @@ export function RealtimeNotifications() {
                 } w-[90vw] sm:w-[400px] shrink-0 bg-white shadow-xl rounded-none border-4 border-black pointer-events-auto flex ring-1 ring-black shadow-[8px_8px_0px_rgba(0,0,0,1)] cursor-pointer hover:bg-slate-50 transition-colors`}
                 onClick={() => {
                   toast.dismiss(t.id)
-                  router.push(`/orders/${payload.new.id}`)
+                  router.push(`/requests/${payload.new.id}`)
                 }}
               >
                 <div className="flex-1 w-0 p-4">

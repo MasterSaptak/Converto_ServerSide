@@ -26,18 +26,18 @@ import { cn } from '@/lib/utils'
 
 const coreNav = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Orders', href: '/orders', icon: ClipboardList },
+  { name: 'Requests', href: '/requests', icon: ClipboardList },
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Support Inbox', href: '/messages', icon: MessageSquare },
 ]
 
 const modulesNav = [
-  { name: 'Currency Exchange', href: '/orders?service=exchange', icon: RefreshCcw },
-  { name: 'Buy For Me', href: '/orders?service=buy_for_me', icon: ShoppingBag },
-  { name: 'Ticket Booking', href: '/orders?service=ticket_booking', icon: Ticket },
-  { name: 'Education', href: '/orders?service=education', icon: GraduationCap },
-  { name: 'Global Payments', href: '/orders?service=payments', icon: Globe },
-  { name: 'Support Tickets', href: '/orders?service=support', icon: MessageSquare },
+  { name: 'Currency Exchange', href: '/requests?service=exchange', icon: RefreshCcw },
+  { name: 'Buy For Me', href: '/requests?service=buy_for_me', icon: ShoppingBag },
+  { name: 'Ticket Booking', href: '/requests?service=ticket_booking', icon: Ticket },
+  { name: 'Education', href: '/requests?service=education', icon: GraduationCap },
+  { name: 'Global Payments', href: '/requests?service=payments', icon: Globe },
+  { name: 'Support Tickets', href: '/requests?service=support', icon: MessageSquare },
 ]
 
 const systemNav = [
