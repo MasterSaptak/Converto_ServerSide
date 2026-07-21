@@ -185,8 +185,8 @@ export function RealtimeNotifications() {
         })
 
         // Identify truly new orders that aren't already active
-        const existingIds = new Set(activeOrdersRef.current.map(o => o.id))
-        const newOrders = pendingInstaOrders.filter(o => !existingIds.has(o.id))
+        const existingIds = new Set(activeOrdersRef.current.map((o: any) => o.id))
+        const newOrders = pendingInstaOrders.filter((o: any) => !existingIds.has(o.id))
         
         if (newOrders.length > 0) {
           setActiveInstaOrders(prev => [...prev, ...newOrders])
@@ -265,7 +265,7 @@ export function RealtimeNotifications() {
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status: string) => {
         console.log('Supabase Realtime Status:', status)
       })
 

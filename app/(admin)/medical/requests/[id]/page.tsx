@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, use } from "react"
 import Link from "next/link"
 import { 
   ArrowLeft, Edit, Clock, MessageSquare, FileText, User, FileCheck, 
@@ -310,7 +310,8 @@ function CommunicationTab() {
 }
 
 
-export default function RequestDetailsPage({ params }: { params: { id: string } }) {
+export default function RequestDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const [activeTab, setActiveTab] = useState('details')
   
   const tabs = [
@@ -335,7 +336,7 @@ export default function RequestDetailsPage({ params }: { params: { id: string } 
               <span className="bg-primary/20 text-primary px-3 py-1 text-xs font-black uppercase tracking-widest border-2 border-primary/20">Urgent</span>
               <span className="bg-blue-100 text-blue-700 px-3 py-1 text-xs font-black uppercase tracking-widest border-2 border-blue-200">Hospital Contacted</span>
             </div>
-            <h1 className="text-3xl md:text-5xl font-black font-heading uppercase leading-[0.9] tracking-tight">{params.id}</h1>
+            <h1 className="text-3xl md:text-5xl font-black font-heading uppercase leading-[0.9] tracking-tight">{id}</h1>
             <p className="text-sm font-bold uppercase tracking-widest opacity-60 mt-2">Rahul Sharma • Cardiology</p>
           </div>
           

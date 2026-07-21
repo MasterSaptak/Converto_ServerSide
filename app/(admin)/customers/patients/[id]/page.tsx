@@ -1,7 +1,8 @@
 import Link from "next/link"
 import { ArrowLeft, User, MapPin, Phone, Mail, FileText, Activity, ShieldCheck, HeartPulse } from "lucide-react"
 
-export default function PatientProfilePage({ params }: { params: { id: string } }) {
+export default async function PatientProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return (
     <div className="flex-1 p-8 animate-in fade-in duration-500">
       
@@ -18,7 +19,7 @@ export default function PatientProfilePage({ params }: { params: { id: string } 
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <span className="bg-emerald-100 text-emerald-800 px-3 py-1 text-xs font-black uppercase tracking-widest border-2 border-emerald-200">Verified Patient</span>
-                <span className="font-mono text-xs font-bold bg-muted px-2 py-1">ID: PAT-2026-00{params.id}</span>
+                <span className="font-mono text-xs font-bold bg-muted px-2 py-1">ID: PAT-2026-00{id}</span>
               </div>
               <h1 className="text-3xl md:text-5xl font-black font-heading uppercase leading-[0.9] tracking-tight">Rahul Sharma</h1>
               <p className="text-sm font-bold uppercase tracking-widest opacity-60 mt-2">Joined 12 Mar 2026</p>
