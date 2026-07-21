@@ -58,6 +58,41 @@ export async function acceptInstaOrder(orderId: string) {
   }
 }
 
+export async function rejectInstaOrder(orderId: string) {
+  try {
+    const supabase = await getSupabase()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      return { error: 'Unauthorized: You must be logged in to reject orders.' }
+    }
+
+    const { error } = await supabase
+      .from('service_requests')
+      .update({
+        status: 'Rejected',
+        closed_at: new Date().toISOString(),
+      })
+      .eq('id', orderId)
+      .is('assigned_staff_id', null)
+
+    if (error) {
+      return { error: 'This order has already been processed by another admin.' }
+    }
+
+    await supabase.from('order_events').insert({
+      order_id: orderId,
+      event_type: 'Order Rejected',
+      remarks: `Order rejected by admin via Insta Orders popup`,
+      actor_id: user.id
+    })
+
+    return { success: true }
+  } catch (err: any) {
+    return { error: err.message || 'Failed to reject order' }
+  }
+}
+
 export async function addOrderNote(formData: FormData) {
   try {
     const orderId = formData.get('orderId') as string

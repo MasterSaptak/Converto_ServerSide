@@ -66,6 +66,7 @@ export default async function DashboardPage() {
   let waitingInstaOrders = 0
   let acceptedInstaOrders = 0
   let completedInstaOrders = 0
+  let rejectedInstaOrders = 0
 
   // Pending action counts
   let submittedCount = 0
@@ -111,6 +112,7 @@ export default async function DashboardPage() {
         if (order.status === 'Submitted') waitingInstaOrders++
         if (order.status === 'Accepted') acceptedInstaOrders++
         if (order.status === 'Completed') completedInstaOrders++
+        if (order.status === 'Rejected') rejectedInstaOrders++
       }
     }
   }
@@ -126,7 +128,7 @@ export default async function DashboardPage() {
   // ── Recent 5 orders ─────────────────────────────────
   const { data: recentOrders } = await supabaseAdmin
     .from('service_requests')
-    .select('*, profile:profiles(full_name), service:services(name, code)')
+    .select('*, profile:profiles!service_requests_profile_id_fkey(full_name), service:services(name, code)')
     .order('created_at', { ascending: false })
     .limit(5)
 
@@ -185,7 +187,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Insta Orders KPI Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <div className="brutal-card-compact p-4 bg-yellow-300 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] flex flex-col justify-between">
           <p className="text-[10px] font-black uppercase tracking-widest text-yellow-900">⚡ Today's Insta Orders</p>
           <p className="text-3xl font-black mt-1 text-black">{instaOrdersCount}</p>
@@ -201,6 +203,10 @@ export default async function DashboardPage() {
         <div className="brutal-card-compact p-4 bg-green-100 flex flex-col justify-between">
           <p className="text-[10px] font-black uppercase tracking-widest text-green-900">Completed</p>
           <p className="text-3xl font-black text-green-600 mt-1">{completedInstaOrders}</p>
+        </div>
+        <div className="brutal-card-compact p-4 bg-gray-200 border-black flex flex-col justify-between">
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-900">Rejected</p>
+          <p className="text-3xl font-black text-gray-600 mt-1">{rejectedInstaOrders}</p>
         </div>
       </div>
 

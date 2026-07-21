@@ -3,14 +3,15 @@
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'react-hot-toast'
-import { Bell, Check, Phone, ExternalLink } from 'lucide-react'
+import { Bell, Check, Phone, ExternalLink, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { acceptInstaOrder } from '@/app/(admin)/requests/actions'
+import { acceptInstaOrder, rejectInstaOrder } from '@/app/(admin)/requests/actions'
 
 // Custom Component for Persistent Insta Order Alerts
-function InstaOrderCard({ order, onAccept, onDismiss }: { order: any, onAccept: (id: string) => void, onDismiss: (id: string) => void }) {
+function InstaOrderCard({ order, onDismiss, onMarkAccepted }: { order: any, onDismiss: (id: string) => void, onMarkAccepted: (id: string) => void }) {
   const [elapsed, setElapsed] = useState(0)
   const [isAccepting, setIsAccepting] = useState(false)
+  const [isRejecting, setIsRejecting] = useState(false)
   const [accepted, setAccepted] = useState(false)
   const router = useRouter()
   
@@ -25,14 +26,7 @@ function InstaOrderCard({ order, onAccept, onDismiss }: { order: any, onAccept: 
     return () => clearInterval(interval)
   }, [order.created_at])
 
-  // Persistent Alarm logic
-  useEffect(() => {
-    if (elapsed > 60 && !accepted && elapsed % 30 === 0) {
-      // Play a reminder ping every 30s after 1 minute
-      const audio = new Audio('/ding.mp3')
-      audio.play().catch(e => console.log('Audio fail', e))
-    }
-  }, [elapsed, accepted])
+
 
   // Color logic based on SLA
   let bgColor = 'bg-green-100 border-green-500'
@@ -65,6 +59,7 @@ function InstaOrderCard({ order, onAccept, onDismiss }: { order: any, onAccept: 
       onDismiss(order.id) // It was taken by someone else
     } else {
       setAccepted(true)
+      onMarkAccepted(order.id)
       toast.success('Assigned to you! Open the order to view details.')
       setTimeout(() => {
         onDismiss(order.id)
@@ -73,8 +68,27 @@ function InstaOrderCard({ order, onAccept, onDismiss }: { order: any, onAccept: 
     setIsAccepting(false)
   }
 
+  const handleReject = async () => {
+    setIsRejecting(true)
+    const res = await rejectInstaOrder(order.id)
+    if (res.error) {
+      toast.error(res.error, { style: { background: '#ef4444', color: '#fff', fontWeight: 'bold' } })
+    } else {
+      toast.success('Order rejected.')
+      onMarkAccepted(order.id) // Stops the ringing
+    }
+    onDismiss(order.id)
+    setIsRejecting(false)
+  }
+
   const customerName = order.profile?.full_name || 'Customer'
   const customerPhone = order.profile?.phone || ''
+
+  let metadataObj = order.metadata
+  if (typeof metadataObj === 'string') {
+    try { metadataObj = JSON.parse(metadataObj) } catch(e){}
+  }
+  const isInstaOrder = metadataObj?.is_insta_order === true || metadataObj?.is_insta_order === 'true';
 
   return (
     <div className={`w-[90vw] sm:w-[400px] shrink-0 shadow-xl rounded-none border-4 pointer-events-auto flex ring-1 ring-black shadow-[8px_8px_0px_rgba(0,0,0,1)] transition-all ${bgColor}`}>
@@ -89,7 +103,7 @@ function InstaOrderCard({ order, onAccept, onDismiss }: { order: any, onAccept: 
             <div className="flex justify-between items-start">
               <div>
                 <p className={`text-sm font-black uppercase tracking-widest ${textColor}`}>
-                  ⚡ NEW INSTA ORDER
+                  {isInstaOrder ? '⚡ NEW INSTA ORDER' : '🆕 NEW REQUEST'}
                 </p>
                 <p className="mt-1 text-sm font-bold text-gray-900">
                   Customer: {customerName}
@@ -117,6 +131,15 @@ function InstaOrderCard({ order, onAccept, onDismiss }: { order: any, onAccept: 
                     {isAccepting ? 'Accepting...' : <><Check className="w-4 h-4"/> Accept</>}
                   </button>
                   
+                  <button 
+                    disabled={isRejecting}
+                    onClick={handleReject}
+                    className="bg-red-500 text-white font-black uppercase tracking-widest px-3 py-2 border-2 border-black shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-y-0.5 hover:translate-x-0.5 hover:shadow-none transition-all flex items-center justify-center disabled:opacity-50"
+                    title="Reject Order"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+
                   {customerPhone && (
                     <a 
                       href={`tel:${customerPhone}`}
@@ -153,44 +176,52 @@ export function RealtimeNotifications() {
   const [activeInstaOrders, setActiveInstaOrders] = useState<any[]>([])
   const supabase = createClient()
   const activeOrdersRef = useRef<any[]>([])
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [audioBlocked, setAudioBlocked] = useState(false)
+
+  // Initialize looping audio
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !audioRef.current) {
+      audioRef.current = new Audio('/ding.mp3')
+      audioRef.current.loop = true
+    }
+  }, [])
 
   // Keep a ref synced with state so intervals can access latest data
   useEffect(() => {
     activeOrdersRef.current = activeInstaOrders
   }, [activeInstaOrders])
 
+  const ringingCount = activeInstaOrders.filter(o => !o.is_accepted_ui).length
+
   useEffect(() => {
-    const alertSound = typeof window !== 'undefined' ? new Audio('/ding.mp3') : null
-    
-    const playAlert = () => {
-      if (alertSound) {
-        alertSound.currentTime = 0
-        alertSound.play().catch(e => console.log('Audio autoplay blocked by browser. Please interact with the page first.', e))
+    if (audioRef.current) {
+      if (ringingCount > 0) {
+        audioRef.current.play().catch(e => {
+          console.log('Audio autoplay blocked by browser. Please interact with the page first.', e)
+          setAudioBlocked(true)
+        })
+      } else {
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
       }
     }
+  }, [ringingCount])
 
+  useEffect(() => {
     const fetchPendingOrders = async () => {
       const { data } = await supabase
         .from('service_requests')
-        .select('*, profile:profiles(full_name, phone)')
+        .select('*, profile:profiles!service_requests_profile_id_fkey(full_name, phone)')
         .eq('status', 'Submitted')
       
       if (data) {
-        const pendingInstaOrders = data.filter((order: any) => {
-          let metadataObj = order.metadata
-          if (typeof metadataObj === 'string') {
-            try { metadataObj = JSON.parse(metadataObj) } catch(e){}
-          }
-          return metadataObj?.is_insta_order === true || metadataObj?.is_insta_order === 'true'
-        })
-
         // Identify truly new orders that aren't already active
         const existingIds = new Set(activeOrdersRef.current.map((o: any) => o.id))
-        const newOrders = pendingInstaOrders.filter((o: any) => !existingIds.has(o.id))
+        const newOrders = data.filter((o: any) => !existingIds.has(o.id))
         
         if (newOrders.length > 0) {
           setActiveInstaOrders(prev => [...prev, ...newOrders])
-          playAlert()
         }
       }
     }
@@ -207,61 +238,26 @@ export function RealtimeNotifications() {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'service_requests',
         },
         async (payload: any) => {
-          console.log('Realtime New Order Received!', payload)
+          console.log('Realtime Order Change Received!', payload)
           
-          let metadataObj = payload.new.metadata || {};
-          if (typeof metadataObj === 'string') {
-            try { metadataObj = JSON.parse(metadataObj) } catch(e){}
-          }
-          const isInstaOrder = metadataObj?.is_insta_order === true || metadataObj?.is_insta_order === 'true';
-
-          if (isInstaOrder) {
+          // Seamlessly refresh Server Components (like Dashboard metrics and tables)
+          router.refresh()
+          
+          if (payload.eventType === 'INSERT') {
             const { data } = await supabase
               .from('service_requests')
-              .select('*, profile:profiles(full_name, phone)')
+              .select('*, profile:profiles!service_requests_profile_id_fkey(full_name, phone)')
               .eq('id', payload.new.id)
               .single()
             
             if (data && !activeOrdersRef.current.some(o => o.id === data.id)) {
               setActiveInstaOrders(prev => [...prev, data])
-              playAlert()
             }
-          } else {
-            playAlert()
-            toast.custom((t) => (
-              <div
-                className={`${
-                  t.visible ? 'animate-enter' : 'animate-leave'
-                } w-[90vw] sm:w-[400px] shrink-0 bg-white shadow-xl rounded-none border-4 border-black pointer-events-auto flex ring-1 ring-black shadow-[8px_8px_0px_rgba(0,0,0,1)] cursor-pointer hover:bg-slate-50 transition-colors`}
-                onClick={() => {
-                  toast.dismiss(t.id)
-                  router.push(`/requests/${payload.new.id}`)
-                }}
-              >
-                <div className="flex-1 w-0 p-4">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0 pt-0.5">
-                      <div className="h-10 w-10 bg-primary flex items-center justify-center border-2 border-black">
-                        <Bell className="h-6 w-6 text-primary-foreground animate-bounce" />
-                      </div>
-                    </div>
-                    <div className="ml-3 flex-1">
-                      <p className="text-sm font-black uppercase tracking-widest text-black">
-                        New Request!
-                      </p>
-                      <p className="mt-1 text-sm font-bold text-gray-700">
-                        ID: {payload.new.id.substring(0, 8)}...
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ), { duration: 6000, position: 'top-right' })
           }
         }
       )
@@ -281,14 +277,35 @@ export function RealtimeNotifications() {
 
   return (
     <>
+      {/* Audio Unmute Overlay */}
+      {audioBlocked && ringingCount > 0 && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center cursor-pointer pointer-events-auto"
+          onClick={() => {
+            if (audioRef.current) {
+              audioRef.current.play().catch(() => {})
+            }
+            setAudioBlocked(false)
+          }}
+        >
+          <div className="bg-red-500 text-white font-black uppercase text-2xl p-8 border-4 border-black animate-pulse flex flex-col items-center gap-4 text-center shadow-[12px_12px_0px_rgba(0,0,0,1)]">
+            <Bell className="w-16 h-16 animate-bounce" />
+            CLICK TO UNMUTE ALARM!
+            <p className="text-sm opacity-90 max-w-sm mt-2">Browser blocked the alarm sound. Click anywhere to allow audio playback.</p>
+          </div>
+        </div>
+      )}
+
       {/* Fixed overlay container for persistent Insta Orders */}
       <div className="fixed top-4 right-4 z-50 flex flex-col gap-4 items-end pointer-events-none">
         {activeInstaOrders.map(order => (
           <InstaOrderCard 
             key={order.id} 
             order={order} 
-            onAccept={dismissInstaOrder} 
             onDismiss={dismissInstaOrder}
+            onMarkAccepted={(id) => {
+              setActiveInstaOrders(prev => prev.map(o => o.id === id ? { ...o, is_accepted_ui: true } : o))
+            }}
           />
         ))}
       </div>
