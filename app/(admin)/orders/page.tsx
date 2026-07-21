@@ -148,15 +148,15 @@ export default async function OrdersPage() {
                         <ArrowUpRight className="w-4 h-4" />
                      </Link>
                      <DropdownMenu>
-                       {/* @ts-expect-error asChild is missing from types */}
-                       <DropdownMenuTrigger asChild>
-                         <button className="p-2 border-2 border-black hover:bg-slate-100 transition-all bg-white">
-                            <MoreVertical className="w-4 h-4" />
-                         </button>
+                       <DropdownMenuTrigger className="p-2 border-2 border-black hover:bg-slate-100 transition-all bg-white rounded-md">
+                          <MoreVertical className="w-4 h-4" />
                        </DropdownMenuTrigger>
                        <DropdownMenuContent align="end" className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-bold">
-                         {/* @ts-expect-error asChild is missing from types */}
-                         <DropdownMenuItem asChild><Link href={`/orders/${order.id}`}>View Details</Link></DropdownMenuItem>
+                         <DropdownMenuItem>
+                           <Link href={`/orders/${order.id}`} className="w-full block">
+                             View Details
+                           </Link>
+                         </DropdownMenuItem>
                          <DropdownMenuItem>Assign Staff</DropdownMenuItem>
                          <DropdownMenuItem>View Timeline</DropdownMenuItem>
                          <DropdownMenuItem className="text-red-600">Cancel Order</DropdownMenuItem>
