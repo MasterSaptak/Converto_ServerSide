@@ -124,7 +124,7 @@ export default function KanbanBoard({
                       <p className="text-xs font-bold text-black/60 uppercase tracking-widest mt-1 flex items-center gap-2">
                         <span>Module: {request.service?.name}</span>
                         <span>•</span>
-                        <span>{new Date(request.created_at).toLocaleDateString()}</span>
+                        <span>{new Date(request.created_at).toLocaleDateString('en-GB')}</span>
                       </p>
                     </div>
                   </div>

@@ -181,13 +181,13 @@ export function RatesManager({ initialRates }: { initialRates: any[] }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {rates.map(rate => {
             const flagUrl = getCurrencyFlagUrl(rate.target_currency);
             return (
               <div key={`market_${rate.target_currency}`} className="bg-white border-2 border-black flex h-[72px] shadow-[3px_3px_0px_rgba(0,0,0,1)] overflow-hidden hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform">
                 {/* Flag Left Section - Fixed Aspect Ratio */}
-                <div className="w-[108px] shrink-0 border-r-2 border-black relative bg-zinc-100">
+                <div className="w-[80px] shrink-0 border-r-2 border-black relative bg-zinc-100">
                   {flagUrl && (
                     <img 
                       src={flagUrl} 
@@ -215,7 +215,7 @@ export function RatesManager({ initialRates }: { initialRates: any[] }) {
           <Shield className="w-4 h-4" /> Converto Rates
         </h3>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {rates.map(rate => {
             const isEditing = editingCurrency === rate.target_currency
             const flagUrl = getCurrencyFlagUrl(rate.target_currency);
@@ -232,7 +232,7 @@ export function RatesManager({ initialRates }: { initialRates: any[] }) {
                 className={`bg-white border-2 border-black flex shadow-[3px_3px_0px_rgba(0,0,0,1)] overflow-hidden group ${isEditing ? 'min-h-[100px] flex-col' : 'h-[72px]'} ${!isEditing ? 'cursor-pointer hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_rgba(0,0,0,1)] transition-all' : ''}`}
               >
                 {/* Flag Left Section (or Top if editing) */}
-                <div className={`${isEditing ? 'w-full h-12 border-b-2' : 'w-[108px] shrink-0 border-r-2'} border-black relative bg-zinc-100`}>
+                <div className={`${isEditing ? 'w-full h-12 border-b-2' : 'w-[80px] shrink-0 border-r-2'} border-black relative bg-zinc-100`}>
                   {flagUrl && (
                     <img 
                       src={flagUrl} 
@@ -302,7 +302,7 @@ export function RatesManager({ initialRates }: { initialRates: any[] }) {
           Difference (Margin)
         </h3>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {rates.map(rate => {
             const diff = rate.custom_rate - rate.market_rate
             const isPositive = diff > 0

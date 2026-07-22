@@ -25,22 +25,12 @@ const primaryNav = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Requests', href: '/requests', icon: ClipboardList },
   { name: 'Customers', href: '/customers', icon: Users },
-  { name: 'Currency Exchange', href: '/requests?service=exchange', icon: RefreshCcw },
-  { name: 'Buy For Me', href: '/requests?service=buy_for_me', icon: ShoppingBag },
-  { name: 'Ticket Booking', href: '/requests?service=ticket_booking', icon: Ticket },
-  { name: 'Education', href: '/requests?service=education', icon: GraduationCap },
-  { name: 'Global Payments', href: '/requests?service=payments', icon: Globe },
   { name: 'Support', href: '/support', icon: MessageSquare },
 ]
 
 const settingsNav = [
   { name: 'Exchange Rates', href: '/exchange-rates', icon: RefreshCcw },
-  { name: 'Service Registry', href: '/services-registry', icon: Workflow, roles: ['Super Admin'] },
-  { name: 'Workflows & Pricing', href: '/workflows', icon: Workflow },
   { name: 'Staff & Roles', href: '/staff', icon: ShieldCheck },
-  { name: 'Audit & Security', href: '/audit', icon: ShieldAlert, roles: ['Super Admin'] },
-  { name: 'Platform Settings', href: '/settings', icon: Settings, roles: ['Super Admin'] },
-  { name: 'Finance & Ledger', href: '/finance', icon: Wallet, roles: ['Super Admin', 'Treasury'] },
 ]
 
 function NavItem({ item, isActive, isCollapsed }: { item: any, isActive: boolean, isCollapsed: boolean }) {
@@ -110,9 +100,6 @@ export function Sidebar({ role = 'Staff', user = { name: 'Admin', email: 'admin@
 
   const visibleSettings = settingsNav.filter(item => !item.roles || item.roles.includes(role))
   const isSettingsActive = visibleSettings.some(item => pathname === item.href) || pathname.startsWith('/settings')
-
-  // Avoid hydration mismatch for width
-  if (!isMounted) return <div className="hidden md:flex w-[260px] h-full bg-card border-r-2 border-border" />
 
   return (
     <motion.div 

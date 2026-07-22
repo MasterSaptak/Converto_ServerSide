@@ -21,9 +21,6 @@ async function updateCorridor(formData: FormData) {
   const is_active = formData.get('is_active') === 'true'
   const notes = formData.get('notes') as string || ''
   const change_reason = formData.get('change_reason') as string || ''
-  
-  const send_methods = formData.getAll('send_methods') as string[]
-  const receive_methods = formData.getAll('receive_methods') as string[]
 
   const cookieStore = await cookies()
   const supabase = createServerClient(
@@ -43,21 +40,6 @@ async function updateCorridor(formData: FormData) {
       updated_at: new Date().toISOString(), updated_by: user?.id || null,
     })
     .eq('id', id)
-
-  // Update methods
-  await supabase.from('corridor_send_methods').delete().eq('corridor_id', id)
-  await supabase.from('corridor_receive_methods').delete().eq('corridor_id', id)
-
-  if (send_methods.length > 0) {
-    await supabase.from('corridor_send_methods').insert(
-      send_methods.map(method_id => ({ corridor_id: id, transfer_method_id: method_id }))
-    )
-  }
-  if (receive_methods.length > 0) {
-    await supabase.from('corridor_receive_methods').insert(
-      receive_methods.map(method_id => ({ corridor_id: id, transfer_method_id: method_id }))
-    )
-  }
 
   if (oldPair) {
     await supabase.from('exchange_rate_history').insert({
@@ -91,9 +73,6 @@ async function addCorridor(formData: FormData) {
   const fee_type = formData.get('fee_type') as FeeType || 'flat'
   const fee_flat = parseFloat(formData.get('fee_flat') as string) || 0
   const fee_percentage = parseFloat(formData.get('fee_percentage') as string) || 0
-  
-  const send_methods = formData.getAll('send_methods') as string[]
-  const receive_methods = formData.getAll('receive_methods') as string[]
 
   const cookieStore = await cookies()
   const supabase = createServerClient(
@@ -114,19 +93,6 @@ async function addCorridor(formData: FormData) {
     })
     .select()
     .single()
-
-  if (newCorridor) {
-    if (send_methods.length > 0) {
-      await supabase.from('corridor_send_methods').insert(
-        send_methods.map(method_id => ({ corridor_id: newCorridor.id, transfer_method_id: method_id }))
-      )
-    }
-    if (receive_methods.length > 0) {
-      await supabase.from('corridor_receive_methods').insert(
-        receive_methods.map(method_id => ({ corridor_id: newCorridor.id, transfer_method_id: method_id }))
-      )
-    }
-  }
 
   revalidatePath('/exchange-rates')
 }
@@ -213,30 +179,6 @@ export default async function ExchangeRatesPage() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 border-b-2 border-black/10 pb-6">
-            <div>
-              <label className="text-xs font-black uppercase tracking-widest mb-3 block">Customer Pays Via</label>
-              <div className="grid grid-cols-2 gap-2">
-                {transferMethods?.map((tm: any) => (
-                  <label key={`send_${tm.id}`} className="flex items-center gap-2 text-xs font-bold bg-slate-50 p-2 border border-black/10 hover:border-black/30 cursor-pointer">
-                    <input type="checkbox" name="send_methods" value={tm.id} className="accent-black w-4 h-4" />
-                    {tm.name}
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-xs font-black uppercase tracking-widest mb-3 block">Recipient Gets Via</label>
-              <div className="grid grid-cols-2 gap-2">
-                {transferMethods?.map((tm: any) => (
-                  <label key={`recv_${tm.id}`} className="flex items-center gap-2 text-xs font-bold bg-slate-50 p-2 border border-black/10 hover:border-black/30 cursor-pointer">
-                    <input type="checkbox" name="receive_methods" value={tm.id} className="accent-black w-4 h-4" />
-                    {tm.name}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
 
           <div className="grid md:grid-cols-4 gap-4">
             <div className="space-y-1">
@@ -319,30 +261,7 @@ export default async function ExchangeRatesPage() {
                 <form action={updateCorridor} className="p-4 space-y-4">
                   <input type="hidden" name="id" value={corridor.id} />
 
-                  <div className="grid grid-cols-2 gap-6 pb-4 border-b-2 border-black/10">
-                    <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest mb-2 block text-indigo-700">Customer Pays</label>
-                      <div className="flex flex-col gap-1">
-                        {transferMethods?.map((tm: any) => (
-                          <label key={`edit_send_${tm.id}`} className="flex items-center gap-2 text-[10px] font-bold uppercase">
-                            <input type="checkbox" name="send_methods" value={tm.id} defaultChecked={sendMethods.some((m:any) => m.id === tm.id)} className="accent-indigo-600 w-3 h-3" />
-                            {tm.name}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest mb-2 block text-emerald-700">Recipient Gets</label>
-                      <div className="flex flex-col gap-1">
-                        {transferMethods?.map((tm: any) => (
-                          <label key={`edit_recv_${tm.id}`} className="flex items-center gap-2 text-[10px] font-bold uppercase">
-                            <input type="checkbox" name="receive_methods" value={tm.id} defaultChecked={receiveMethods.some((m:any) => m.id === tm.id)} className="accent-emerald-600 w-3 h-3" />
-                            {tm.name}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+
 
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-widest opacity-60">Converto Rate</label>

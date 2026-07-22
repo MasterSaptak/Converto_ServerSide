@@ -18,7 +18,7 @@ import { useEffect, useState } from 'react'
 import { NotificationBell } from './NotificationBell'
 import { GlobalSearch } from './GlobalSearch'
 
-export function Header() {
+export function Header({ user }: { user?: { name: string, email: string, avatarUrl: string, role: string } }) {
   const router = useRouter()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -126,25 +126,27 @@ export function Header() {
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-3 p-1 border-2 border-border hover:bg-accent transition-all pr-4">
               <Avatar className="w-10 h-10 rounded-none border-r-2 border-border">
-                <AvatarImage src="" />
-                <AvatarFallback className="rounded-none font-black bg-foreground text-background">AD</AvatarFallback>
+                <AvatarImage src={user?.avatarUrl || ''} />
+                <AvatarFallback className="rounded-none font-black bg-foreground text-background">{user?.name?.charAt(0) || 'A'}</AvatarFallback>
               </Avatar>
               <div className="text-left">
-                <p className="text-sm font-black leading-none text-foreground">Admin User</p>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">Super Admin</p>
+                <p className="text-sm font-black leading-none text-foreground">{user?.name || 'Admin User'}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">{user?.role || 'Super Admin'}</p>
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="rounded-none border-2 border-border shadow-[4px_4px_0px_0px_var(--color-border)] w-56 bg-card">
               <DropdownMenuGroup>
-                <DropdownMenuLabel className="font-black text-foreground">My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-border h-[2px]" />
-                <DropdownMenuItem 
-                  onClick={() => router.push('/profile')}
-                  className="font-bold focus:bg-accent focus:text-accent-foreground cursor-pointer"
-                >
-                  Profile Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-border h-[2px]" />
+                <div className="flex items-center gap-3 p-4 bg-accent/20">
+                  <Avatar className="w-12 h-12 rounded-full border-2 border-border shadow-[2px_2px_0px_0px_var(--color-border)] bg-background">
+                    <AvatarImage src={user?.avatarUrl || ''} />
+                    <AvatarFallback className="font-black">{user?.name?.charAt(0) || 'A'}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col min-w-0">
+                    <p className="font-black text-foreground truncate">{user?.name || 'Admin User'}</p>
+                    <p className="text-[11px] font-bold text-muted-foreground truncate">{user?.email || 'admin@converto.com'}</p>
+                  </div>
+                </div>
+                <DropdownMenuSeparator className="bg-border h-[2px] m-0" />
                 <DropdownMenuItem 
                   onClick={handleInstallPWA}
                   className="font-bold focus:bg-accent focus:text-accent-foreground cursor-pointer"
