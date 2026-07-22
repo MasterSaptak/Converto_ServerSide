@@ -133,7 +133,19 @@ Most data fetching and mutation is done via **Server Actions** rather than tradi
 
 ---
 
-## 14. Configuration Files
+## 14. Design System & Thematic Guidelines (STRICTLY ENFORCED)
+**Crucial Context for AI Assistants**: The Converto platform uses a **Brutalist UI Design System**. You MUST NOT attempt to "modernize", "soften", or change this theme to standard SaaS designs (like Tailwind's default rounded styles, soft shadows, or generic corporate aesthetics). 
+- **Borders**: Elements MUST have thick, hard borders (e.g., `border-2 border-black` or `border-4 border-black`).
+- **Shadows**: Use hard, unblurred drop shadows to create a retro/brutalist 3D effect (e.g., `shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`). Do NOT use standard `shadow-md` or `shadow-lg` which blur the shadow.
+- **Corners**: Everything MUST have sharp edges. Use `rounded-none`. Do NOT use `rounded-md` or `rounded-lg`.
+- **Typography**: Heavily utilize bold, uppercase fonts for headers and important text (`font-black uppercase tracking-widest`).
+- **Colors**: Use high-contrast colors (stark blacks, stark whites, and vibrant pop colors like bright pink/magenta `#FF90E8`, bright yellow). Avoid soft pastels.
+- **Micro-interactions**: Buttons should depress mechanically on click (e.g., `active:translate-x-[2px] active:translate-y-[2px] active:shadow-none`).
+If you add new UI components, you MUST conform exactly to this brutalist design language.
+
+---
+
+## 15. Configuration Files
 - `tailwind.config.ts`: Defines the Brutalist theme (colors, fonts).
 - `next.config.mjs`: Next.js config.
 - `middleware.ts`: Secures routes via Supabase SSR.
@@ -250,7 +262,7 @@ Most data fetching and mutation is done via **Server Actions** rather than tradi
 - **Current Architecture**: We are using Next.js 15 App Router with Supabase. You are operating in a monorepo-like environment with two distinct folders: `Converto_UserSide` and `Converto_ServerSide`.
 - **Important Invariants**: 
   1. NEVER expose `customer_visible = false` statuses to the user. Always fall back to "Processing" or the Stage name.
-  2. Maintain the Brutalist design language (`border-2 border-black font-black uppercase`). Avoid generic rounded, soft UI elements.
+  2. **CRITICAL: STRICT DESIGN THEME MAINTENANCE**: Maintain the Brutalist design language AT ALL TIMES (`border-2 border-black font-black uppercase rounded-none`). Avoid generic rounded, soft UI elements. Never implement Tailwind defaults like `rounded-md`, `shadow-md`. The purpose of this `CONTEXT.md` is to ensure you remember not to break the core brutalist aesthetics and the established architecture when fulfilling future feature requests.
 - **Expected Coding Style**: Prioritize Server Components. Use Server Actions for mutations. Use `revalidatePath` to update UI post-mutation.
 - **How to Refactor**: Ensure Supabase database types (`types/database.ts`) remain in sync if you alter schemas. 
 - **Hidden Relationships**: The `metadata` JSONB column in `service_requests` is highly polymorphic. Its shape depends entirely on the `service_id`/`service_slug`. Always check the slug before accessing metadata properties.
