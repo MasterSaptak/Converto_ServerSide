@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
@@ -21,6 +21,10 @@ export default function KanbanBoard({
   const [selectedStageId, setSelectedStageId] = useState<string | 'ALL'>('ALL')
   const router = useRouter()
   const supabase = createClient()
+
+  useEffect(() => {
+    setRequests(initialRequests)
+  }, [initialRequests])
 
   // Group requests by stage to get counts
   const requestsByStage = initialStages.reduce((acc, stage) => {

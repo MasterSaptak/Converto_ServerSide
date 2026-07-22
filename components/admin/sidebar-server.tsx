@@ -18,16 +18,19 @@ export async function SidebarServer() {
 
   const { data: { user } } = await supabase.auth.getUser()
   let role = 'Staff'
+  let userName = 'Admin'
+  let userEmail = user?.email || 'admin@converto.com'
 
   if (user) {
     const { data: staff } = await supabase
       .from('staff')
-      .select('role:roles(name)')
+      .select('name, role:roles(name)')
       .eq('id', user.id)
       .single()
     
     if (staff && staff.role) {
       role = (staff.role as any).name
+      userName = staff.name || 'Admin'
     } else {
       role = 'Super Admin' // Fallback for MVP if roles table isn't seeded
     }
@@ -35,7 +38,7 @@ export async function SidebarServer() {
 
   return (
     <>
-      <Sidebar role={role} />
+      <Sidebar role={role} user={{ name: userName, email: userEmail }} />
       <div className="md:hidden fixed top-4 left-4 z-50">
         <MobileSidebar role={role} />
       </div>

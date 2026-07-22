@@ -1,4 +1,4 @@
-import type {Metadata} from 'next';
+import type {Metadata, Viewport} from 'next';
 import './globals.css';
 import { Inter, Space_Grotesk } from "next/font/google";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,12 @@ const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-headi
 export const metadata: Metadata = {
   title: 'Converto Admin ERP',
   description: 'Operations Dashboard for Converto',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Converto Admin',
+  },
   openGraph: {
     title: "Converto Admin ERP",
     description: "Operations Dashboard for Converto",
@@ -33,9 +39,21 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#09090b",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en" className={cn("font-sans", inter.variable, spaceGrotesk.variable)} suppressHydrationWarning>
+      <head>
+        <link rel="apple-touch-icon" href="/opengraph-image.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+      </head>
       <body className="antialiased bg-background text-foreground transition-colors" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
@@ -45,6 +63,17 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         >
           {children}
         </ThemeProvider>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js');
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );

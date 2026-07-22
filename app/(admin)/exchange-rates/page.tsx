@@ -4,6 +4,7 @@ import { ArrowRightLeft, Save, RefreshCw, Plus, TrendingUp, TrendingDown, Globe,
 import { revalidatePath } from 'next/cache'
 import { logAuditAction } from '@/lib/audit'
 import type { FeeType } from '@/modules/exchange/types'
+import { RatesManager } from './components/rates-manager'
 
 // -----------------------------------------------
 // Server Action: Update a corridor
@@ -153,8 +154,16 @@ export default async function ExchangeRatesPage() {
     .select('*')
     .order('name', { ascending: true })
 
+  const { data: initialCurrencyRates } = await supabase
+    .from('currency_rates')
+    .select('*')
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-10">
+      
+      {/* New Live Rates Manager */}
+      <RatesManager initialRates={initialCurrencyRates || []} />
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-4xl font-black tracking-tight uppercase">Transfer Corridors</h2>
