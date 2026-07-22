@@ -28,7 +28,7 @@ const primaryNav = [
   { name: 'Support', href: '/support', icon: MessageSquare },
 ]
 
-const settingsNav = [
+const settingsNav: { name: string, href: string, icon: any, roles?: string[] }[] = [
   { name: 'Exchange Rates', href: '/exchange-rates', icon: RefreshCcw },
   { name: 'Staff & Roles', href: '/staff', icon: ShieldCheck },
 ]

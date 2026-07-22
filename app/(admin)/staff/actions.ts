@@ -33,7 +33,7 @@ export async function inviteStaffMember(formData: FormData) {
       roleId: formData.get('roleId') || undefined
     }
     const parsed = InviteStaffSchema.safeParse(rawData)
-    if (!parsed.success) return { success: false, message: parsed.error.errors[0].message }
+    if (!parsed.success) return { success: false, message: parsed.error.issues[0].message }
     const { email, fullName, roleId } = parsed.data
 
     // 3. Lookup Profile
@@ -157,7 +157,7 @@ export async function updateStaffProfile(formData: FormData) {
       lastUpdatedAt: formData.get('lastUpdatedAt') || undefined
     }
     const parsed = UpdateStaffSchema.safeParse(rawData)
-    if (!parsed.success) return { success: false, message: parsed.error.errors[0].message }
+    if (!parsed.success) return { success: false, message: parsed.error.issues[0].message }
     const { profileId, fullName, isActive, roleId, lastUpdatedAt } = parsed.data
 
     const ip = (await headers()).get('x-forwarded-for') || 'Unknown IP'
