@@ -93,7 +93,7 @@ export function SupportInbox({ initialConversations, currentUserId }: SupportInb
           }, {});
         }
 
-        const enrichedMessages = data.map(m => ({
+        const enrichedMessages = data.map((m: any) => ({
           ...m,
           avatar_url: m.sender_id ? (avatarMap[m.sender_id] || null) : null
         }));
