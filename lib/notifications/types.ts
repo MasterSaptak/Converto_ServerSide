@@ -41,6 +41,7 @@ export type NotificationPriorityValue = typeof NotificationPriority[keyof typeof
 export interface Notification {
   id: string;
   profile_id: string | null;
+  target_role: string;
   category: NotificationCategoryValue;
   priority: NotificationPriorityValue;
   channel: string[];
