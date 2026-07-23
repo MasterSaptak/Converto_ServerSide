@@ -41,6 +41,7 @@ export function NotificationBell() {
   const tabCounts = useMemo(() => ({
     all: notifications.length,
     unread: unreadCount,
+    chat: notifications.filter(n => n.category === NotificationCategory.CHAT).length,
     request: notifications.filter(n => n.category === NotificationCategory.REQUEST).length,
     payment: notifications.filter(n => n.category === NotificationCategory.PAYMENT).length,
     system: notifications.filter(n => n.category === NotificationCategory.SYSTEM).length,
@@ -96,18 +97,24 @@ export function NotificationBell() {
           </div>
           
           {/* Tabs */}
-          <div className="flex border-b-4 border-border overflow-x-auto scrollbar-hide text-[10px] uppercase font-black bg-background">
-            <button onClick={() => setFilter('all')} className={cn("px-4 py-3 shrink-0 border-r-4 border-border transition-colors", filter === 'all' ? "bg-foreground text-background" : "hover:bg-accent")}>
+          <div className="flex border-b-4 border-border overflow-x-auto scrollbar-hide text-[9px] md:text-[10px] uppercase font-black bg-background">
+            <button onClick={() => setFilter('all')} className={cn("px-3 md:px-4 py-2 md:py-3 shrink-0 border-r-4 border-border transition-colors", filter === 'all' ? "bg-foreground text-background" : "hover:bg-accent")}>
               All ({tabCounts.all})
             </button>
-            <button onClick={() => setFilter('unread')} className={cn("px-4 py-3 shrink-0 border-r-4 border-border transition-colors", filter === 'unread' ? "bg-foreground text-background" : "hover:bg-accent")}>
+            <button onClick={() => setFilter('unread')} className={cn("px-3 md:px-4 py-2 md:py-3 shrink-0 border-r-4 border-border transition-colors", filter === 'unread' ? "bg-foreground text-background" : "hover:bg-accent")}>
               Unread ({tabCounts.unread})
             </button>
-            <button onClick={() => setFilter(NotificationCategory.REQUEST)} className={cn("px-4 py-3 shrink-0 border-r-4 border-border transition-colors", filter === NotificationCategory.REQUEST ? "bg-foreground text-background" : "hover:bg-accent")}>
+            <button onClick={() => setFilter(NotificationCategory.CHAT as NotificationFilter)} className={cn("px-3 md:px-4 py-2 md:py-3 shrink-0 border-r-4 border-border transition-colors", filter === NotificationCategory.CHAT ? "bg-foreground text-background" : "hover:bg-accent")}>
+              Chat ({tabCounts.chat})
+            </button>
+            <button onClick={() => setFilter(NotificationCategory.REQUEST as NotificationFilter)} className={cn("px-3 md:px-4 py-2 md:py-3 shrink-0 border-r-4 border-border transition-colors", filter === NotificationCategory.REQUEST ? "bg-foreground text-background" : "hover:bg-accent")}>
               Requests ({tabCounts.request})
             </button>
-            <button onClick={() => setFilter(NotificationCategory.PAYMENT)} className={cn("px-4 py-3 shrink-0 transition-colors", filter === NotificationCategory.PAYMENT ? "bg-foreground text-background" : "hover:bg-accent")}>
+            <button onClick={() => setFilter(NotificationCategory.PAYMENT as NotificationFilter)} className={cn("px-3 md:px-4 py-2 md:py-3 shrink-0 border-r-4 border-border transition-colors", filter === NotificationCategory.PAYMENT ? "bg-foreground text-background" : "hover:bg-accent")}>
               Payments ({tabCounts.payment})
+            </button>
+            <button onClick={() => setFilter(NotificationCategory.SYSTEM as NotificationFilter)} className={cn("px-3 md:px-4 py-2 md:py-3 shrink-0 transition-colors", filter === NotificationCategory.SYSTEM ? "bg-foreground text-background" : "hover:bg-accent")}>
+              System ({tabCounts.system})
             </button>
           </div>
 

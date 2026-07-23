@@ -121,15 +121,17 @@ export function Header({ user }: { user?: { name: string, email: string, avatarU
             </button>
           )}
 
-          <NotificationBell />
+          <div className="scale-90 md:scale-100 origin-right">
+            <NotificationBell />
+          </div>
 
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-3 p-1 border-2 border-border hover:bg-accent transition-all pr-4">
-              <Avatar className="w-10 h-10 rounded-none border-r-2 border-border">
+            <DropdownMenuTrigger className="flex items-center gap-3 p-1 md:border-2 border-border hover:bg-accent transition-all md:pr-4">
+              <Avatar className="w-8 h-8 md:w-10 md:h-10 rounded-none border-border md:border-r-2">
                 <AvatarImage src={user?.avatarUrl || ''} />
-                <AvatarFallback className="rounded-none font-black bg-foreground text-background">{user?.name?.charAt(0) || 'A'}</AvatarFallback>
+                <AvatarFallback className="rounded-none font-black bg-foreground text-background text-xs md:text-sm">{user?.name?.charAt(0) || 'A'}</AvatarFallback>
               </Avatar>
-              <div className="text-left">
+              <div className="text-left hidden md:block">
                 <p className="text-sm font-black leading-none text-foreground">{user?.name || 'Admin User'}</p>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">{user?.role || 'Super Admin'}</p>
               </div>

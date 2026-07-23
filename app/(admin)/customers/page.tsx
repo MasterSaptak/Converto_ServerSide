@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { Search, Mail, Phone, MapPin, UserCheck, ArrowUpRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'

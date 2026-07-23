@@ -99,9 +99,12 @@ export function useSharedNotifications(
             
             // Mode-specific realtime filtering
             if (mode === 'user') {
+              if (newNotif.target_role === 'staff') return; // Ignore staff notifications
               if (newNotif.profile_id !== userId && newNotif.profile_id !== null) {
                 return; // Not for this user
               }
+            } else if (mode === 'staff') {
+              if (newNotif.target_role === 'customer') return; // Ignore customer notifications
             }
             
             setNotifications((prev) => [newNotif, ...prev]);
@@ -123,9 +126,12 @@ export function useSharedNotifications(
             const updatedNotif = payload.new as Notification;
             
             if (mode === 'user') {
+              if (updatedNotif.target_role === 'staff') return;
               if (updatedNotif.profile_id !== userId && updatedNotif.profile_id !== null) {
                 return;
               }
+            } else if (mode === 'staff') {
+              if (updatedNotif.target_role === 'customer') return;
             }
 
             setNotifications((prev) => 

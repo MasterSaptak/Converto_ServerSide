@@ -267,3 +267,8 @@ If you add new UI components, you MUST conform exactly to this brutalist design 
 - **How to Refactor**: Ensure Supabase database types (`types/database.ts`) remain in sync if you alter schemas. 
 - **Hidden Relationships**: The `metadata` JSONB column in `service_requests` is highly polymorphic. Its shape depends entirely on the `service_id`/`service_slug`. Always check the slug before accessing metadata properties.
 - **Next Steps**: When resuming, you will likely be expanding `lib/workflow-engine.ts` to execute real HTTP webhooks, or building out the AI smart quoting features toggled in the settings page.
+
+---
+
+## 31. Recent Updates
+- **Removed Support Service**: The "Support & Help" service (slug: `support`) was explicitly filtered out and removed from the UserSide `/services` page rendering.

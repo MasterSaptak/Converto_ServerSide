@@ -26,6 +26,23 @@ export default function KanbanBoard({
     setRequests(initialRequests)
   }, [initialRequests])
 
+  useEffect(() => {
+    const channel = supabase
+      .channel('kanban-requests')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'service_requests',
+      }, (payload: any) => {
+        router.refresh()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, router])
+
   // Group requests by stage to get counts
   const requestsByStage = initialStages.reduce((acc, stage) => {
     acc[stage.id] = requests.filter(r => r.pipeline_stage_id === stage.id)

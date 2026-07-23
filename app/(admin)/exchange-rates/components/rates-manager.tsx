@@ -19,15 +19,15 @@ const formatRate = (rate: number, currency: string) => {
   return rate.toFixed(4)
 }
 
-const getFlagEmoji = (currency: string) => {
+const getCurrencySymbol = (currency: string) => {
   switch (currency) {
-    case 'INR': return '🟨' // Using colored squares as per mockup
-    case 'USD': return '🟩'
-    case 'EUR': return '🟦'
-    case 'CNY': return '🩷'
-    case 'GBP': return '🟪'
-    case 'BDT': return '🔴'
-    default: return '⬜'
+    case 'USD': return '$';
+    case 'EUR': return '€';
+    case 'CNY': return '¥';
+    case 'INR': return '₹';
+    case 'GBP': return '£';
+    case 'BDT': return '৳';
+    default: return '';
   }
 }
 
@@ -199,7 +199,10 @@ export function RatesManager({ initialRates }: { initialRates: any[] }) {
                 {/* Details Right Section */}
                 <div className="flex-1 px-3 py-2 flex flex-col justify-center bg-white relative">
                   <div className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 opacity-80 mb-1 leading-none">
-                    {getFlagEmoji(rate.target_currency)} {rate.target_currency}
+                    <span className="flex items-center gap-1">
+                      <span className="text-sm font-sans leading-none">{getCurrencySymbol(rate.target_currency)}</span>
+                      <span className="leading-none">{rate.target_currency}</span>
+                    </span>
                   </div>
                   <div className="font-mono text-lg font-black leading-none">{formatRate(rate.market_rate, rate.target_currency)}</div>
                 </div>
@@ -245,7 +248,10 @@ export function RatesManager({ initialRates }: { initialRates: any[] }) {
                 <div className={`flex-1 ${isEditing ? 'p-3 flex flex-col justify-between' : 'px-3 py-2 flex flex-col justify-center'} bg-white relative`}>
                   <div className={`flex items-center justify-between w-full ${!isEditing ? 'mb-1' : ''}`}>
                     <div className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 opacity-80 leading-none">
-                      {getFlagEmoji(rate.target_currency)} {rate.target_currency}
+                      <span className="flex items-center gap-1">
+                        <span className="text-sm font-sans leading-none">{getCurrencySymbol(rate.target_currency)}</span>
+                        <span className="leading-none">{rate.target_currency}</span>
+                      </span>
                     </div>
                     {!isEditing && (
                       <div className="bg-yellow-400 px-1 py-0.5 border-2 border-black text-[8px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] leading-none">
