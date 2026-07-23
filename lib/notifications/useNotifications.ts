@@ -54,12 +54,11 @@ export function useSharedNotifications(
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      // Mode-specific filtering
+      // Mode-specific filtering matching RLS policy
       if (mode === 'user') {
-        // Users see their own + broadcast (profile_id is null)
-        query = query.or(`profile_id.eq.${currentUserId},profile_id.is.null`);
+        query = query.or(`profile_id.eq.${currentUserId},and(profile_id.is.null,target_role.in.(customer,all))`);
       } else if (mode === 'staff') {
-        // Staff sees everything (RLS policy handles this, but we don't add extra filters)
+        query = query.or(`profile_id.eq.${currentUserId},and(profile_id.is.null,target_role.in.(staff,all))`);
       }
 
       const { data, error: fetchError } = await query;
@@ -69,7 +68,7 @@ export function useSharedNotifications(
 
     } catch (err: any) {
       console.error('Failed to fetch notifications:', err);
-      setError(err);
+      setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setLoading(false);
     }
@@ -79,7 +78,7 @@ export function useSharedNotifications(
   useEffect(() => {
     fetchNotifications();
 
-    if (!userId && mode === 'user') return; // User mode requires userId. Staff mode technically might fetch all even if RLS allows it, but realistically staff is also logged in.
+    if (!userId && mode === 'user') return;
 
     // Unique channel name to avoid conflicts
     const channelName = `public:notifications-${mode}-${Math.random().toString(36).substring(7)}`;
@@ -105,9 +104,15 @@ export function useSharedNotifications(
               }
             } else if (mode === 'staff') {
               if (newNotif.target_role === 'customer') return; // Ignore customer notifications
+              if (newNotif.profile_id && newNotif.profile_id !== userId) {
+                return; // Targeted to another specific staff member
+              }
             }
             
-            setNotifications((prev) => [newNotif, ...prev]);
+            setNotifications((prev) => {
+              if (prev.some(n => n.id === newNotif.id)) return prev;
+              return [newNotif, ...prev];
+            });
 
             // Show toast only once
             if (!shownToasts.current.has(newNotif.id)) {
@@ -178,17 +183,6 @@ export function useSharedNotifications(
 
     let query = supabase.from('notifications').update({ is_read: true }).eq('is_read', false);
     
-    if (mode === 'user' && userId) {
-      query = query.eq('profile_id', userId);
-    }
-    // For staff, markAllAsRead might be tricky if it marks EVERY notification as read for everyone. 
-    // Usually, we'd only mark our own. Assuming staff just marks what's visible, or we just execute it.
-    // If we only want to mark staff's own read, we should do eq('profile_id', userId).
-    // For now, let's keep it scoped to user if mode=user. 
-    // If mode=staff, this marks all unread in DB as read. RLS might restrict it to own notifications depending on policy.
-    // The policy says: "Users can update own notifications" USING (profile_id = auth.uid())
-    // Wait, staff policy for UPDATE doesn't exist? Only for SELECT and INSERT?
-    // Let's scope it to profile_id = userId for both to be safe and avoid errors, unless broadcast.
     if (userId) {
       query = query.eq('profile_id', userId); 
     }

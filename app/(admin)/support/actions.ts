@@ -201,3 +201,25 @@ export async function joinConversation(conversationId: string) {
   if (error) throw error
   revalidatePath('/support')
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Soft delete a conversation
+// ─────────────────────────────────────────────────────────────────────────────
+export async function deleteConversation(conversationId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { error } = await supabase
+    .from('communication_conversations')
+    .update({
+      is_deleted: true,
+      deleted_by: user.id,
+      deleted_at: new Date().toISOString()
+    })
+    .eq('id', conversationId)
+
+  if (error) throw error
+  revalidatePath('/support')
+}
+

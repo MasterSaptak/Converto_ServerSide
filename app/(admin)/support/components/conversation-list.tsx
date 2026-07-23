@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, User, Hash } from 'lucide-react'
+import { Search, User, Hash, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ConversationData } from './support-inbox'
 
@@ -70,6 +70,7 @@ interface ConversationListProps {
   conversations: ConversationData[]
   selectedId: string | null
   onSelect: (id: string) => void
+  onDelete?: (id: string) => void
   filter: string
   onFilterChange: (f: string) => void
   searchQuery: string
@@ -81,6 +82,7 @@ export function ConversationList({
   conversations,
   selectedId,
   onSelect,
+  onDelete,
   filter,
   onFilterChange,
   searchQuery,
@@ -134,17 +136,17 @@ export function ConversationList({
             const statusLabel = conv.status.replace(/_/g, ' ')
 
             return (
-              <button
+              <div
                 key={conv.id}
                 onClick={() => onSelect(conv.id)}
                 className={cn(
-                  'w-full text-left p-3 border-b border-border/30 transition-colors cursor-pointer',
+                  'group relative w-full text-left p-3 border-b border-border/30 transition-colors cursor-pointer',
                   isSelected
                     ? 'bg-accent/60 border-l-4 border-l-foreground'
                     : 'hover:bg-accent/30 border-l-4 border-l-transparent'
                 )}
               >
-                {/* Row 1: Customer Name + Time */}
+                {/* Row 1: Customer Name + Time + Delete Button */}
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <div className="flex items-center gap-2 min-w-0">
                     {/* Priority dot */}
@@ -156,9 +158,23 @@ export function ConversationList({
                     </div>
                     <span className="font-bold text-sm truncate">{displayName(conv.customer)}</span>
                   </div>
-                  <span className="text-[9px] font-bold text-muted-foreground shrink-0 pt-0.5">
-                    {formatRelativeTime(conv.last_message_at)}
-                  </span>
+                  <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                    <span className="text-[9px] font-bold text-muted-foreground">
+                      {formatRelativeTime(conv.last_message_at)}
+                    </span>
+                    {onDelete && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDelete(conv.id)
+                        }}
+                        title="Delete Chat"
+                        className="p-1 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer ml-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Row 2: Subject */}
@@ -191,7 +207,7 @@ export function ConversationList({
                     </span>
                   )}
                 </div>
-              </button>
+              </div>
             )
           })
         )}

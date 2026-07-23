@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { User, Clock, Tag, Flag, ArrowUpRight, Globe, Mail, Phone, MapPin, CheckCircle, AlertTriangle, ChevronDown } from 'lucide-react'
+import { User, Clock, Tag, Flag, ArrowUpRight, Globe, Mail, Phone, MapPin, CheckCircle, AlertTriangle, ChevronDown, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { updateConversationStatus, updateConversationPriority } from '../actions'
@@ -50,9 +50,10 @@ function displayName(customer: ConversationData['customer']): string {
 interface ConversationSidebarProps {
   conversation: ConversationData
   onConversationUpdated: (fields: Partial<ConversationData>) => void
+  onDelete?: (id: string) => void
 }
 
-export function ConversationSidebar({ conversation, onConversationUpdated }: ConversationSidebarProps) {
+export function ConversationSidebar({ conversation, onConversationUpdated, onDelete }: ConversationSidebarProps) {
   const [updatingStatus, setUpdatingStatus] = useState(false)
   const [updatingPriority, setUpdatingPriority] = useState(false)
 
@@ -282,6 +283,18 @@ export function ConversationSidebar({ conversation, onConversationUpdated }: Con
               </div>
             ))}
           </div>
+        </div>
+      )}
+      {/* ── Delete Action ────────────────────────────────────────────────── */}
+      {onDelete && (
+        <div className="p-4 border-t-2 border-border mt-auto">
+          <button
+            onClick={() => onDelete(conversation.id)}
+            className="w-full px-3 py-2 border-2 border-red-600 bg-red-50 text-red-700 hover:bg-red-600 hover:text-white font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer shadow-[2px_2px_0px_0px_var(--color-border)]"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete Chat
+          </button>
         </div>
       )}
     </div>

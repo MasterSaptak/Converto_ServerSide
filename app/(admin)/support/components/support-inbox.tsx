@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { MessageSquare } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { ConversationList } from './conversation-list'
 import { ChatPanel } from './chat-panel'
 import { ConversationSidebar } from './conversation-sidebar'
+import { deleteConversation } from '../actions'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared Types
@@ -67,8 +69,22 @@ export function SupportInbox({ initialConversations, currentUserId }: SupportInb
   const [filter, setFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const supabase = createClient()
   const selectedConversation = conversations.find(c => c.id === selectedId) || null
+
+  // ── Sync URL ?id= with selectedId or default to first conversation ──
+  useEffect(() => {
+    const urlId = searchParams.get('id')
+    if (urlId && conversations.some(c => c.id === urlId)) {
+      if (selectedId !== urlId) {
+        setSelectedId(urlId)
+      }
+    } else if (!selectedId && conversations.length > 0) {
+      setSelectedId(conversations[0].id)
+    }
+  }, [searchParams, conversations, selectedId])
 
   // ── Fetch messages for selected conversation ────────────────────────────
   const fetchMessages = useCallback(async (conversationId: string) => {
@@ -210,6 +226,7 @@ export function SupportInbox({ initialConversations, currentUserId }: SupportInb
   // ── Handlers ────────────────────────────────────────────────────────────
   const handleSelectConversation = (id: string) => {
     setSelectedId(id)
+    router.replace(`/support?id=${id}`, { scroll: false })
   }
 
   const handleMessageSent = async (msg: MessageData) => {
@@ -231,6 +248,17 @@ export function SupportInbox({ initialConversations, currentUserId }: SupportInb
     setConversations(prev =>
       prev.map(c => c.id === selectedId ? { ...c, ...updatedFields } : c)
     )
+  }
+
+  const handleDeleteConversation = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this chat conversation?')) return
+    try {
+      await deleteConversation(id)
+      setConversations(prev => prev.filter(c => c.id !== id))
+      if (selectedId === id) setSelectedId(null)
+    } catch (err) {
+      console.error('Failed to delete conversation:', err)
+    }
   }
 
   // ── Filter conversations ───────────────────────────────────────────────
@@ -288,6 +316,7 @@ export function SupportInbox({ initialConversations, currentUserId }: SupportInb
             conversations={filteredConversations}
             selectedId={selectedId}
             onSelect={handleSelectConversation}
+            onDelete={handleDeleteConversation}
             filter={filter}
             onFilterChange={setFilter}
             searchQuery={searchQuery}
@@ -325,6 +354,7 @@ export function SupportInbox({ initialConversations, currentUserId }: SupportInb
             <ConversationSidebar
               conversation={selectedConversation}
               onConversationUpdated={handleConversationUpdated}
+              onDelete={handleDeleteConversation}
             />
           </div>
         )}
