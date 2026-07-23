@@ -60,7 +60,7 @@
 - **Server Actions**: Primarily used instead of traditional REST APIs.
   - `sendSupportMessage(convId, text, visibility)`: Sends a staff message in a conversation.
   - `deleteConversation(convId)`: Soft-deletes a conversation (`is_deleted = true`).
-  - `updateConversationStatus(convId, status)`: Updates ticket state (`open`, `waiting_on_customer`, `resolved`, `closed`).
+  - `updateConversationStatus(convId, status)`: Updates ticket state (`open`, `waiting_on_customer`, `resolved`, `closed`) and inserts a system status event.
   - `updateConversationPriority(convId, priority)`: Updates priority (`low`, `normal`, `high`, `urgent`).
   - `fetchUserAvatars(ids)`: Retrieves profile pictures to attach to messages.
 
@@ -69,7 +69,7 @@
   - *Dependencies*: Supabase client, Realtime, Next.js Navigation (`useSearchParams`, `useRouter`).
   - *State*: List of conversations, active conversation ID synced to URL `?id=...`.
 - **ConversationList**: Renders conversation cards with channel badges, priority dots, status labels, and a 1-click delete button.
-- **ChatPanel**: The actual messaging timeline interface with internal note toggle.
+- **ChatPanel**: The actual messaging timeline interface with internal note toggle and centered system event badges.
 - **ConversationSidebar**: Customer profile summary, SLA timers, status controls, priority controls, and a dedicated **"Delete Chat"** button.
 
 # 10. Pages
@@ -84,6 +84,7 @@
 - **Caching**: Next.js App Router caching (`revalidatePath`).
 
 # 12. Business Logic
+- **Unified System Message Rendering**: System events created when updating ticket status (e.g. `"Conversation marked as waiting on customer."`) render identically across ServerSide and UserSide applications.
 - **Deep Link Navigation**: Clicking "View" on staff notification toasts navigates directly to `/support?id=CONVERSATION_ID`, which opens the specific customer's chat thread automatically. If no ID is in the URL, `SupportInbox` defaults to selecting the top active conversation.
 - **Role-based visibility**: Messages have a `visibility` column. Internal notes are invisible to customers.
 - **Targeted Notification Filtering**: Notifications carry a `target_role` (`customer`, `staff`, `all`). `useNotifications` filters out customer notifications from the admin inbox.
@@ -123,6 +124,7 @@
 # 20. Reusable Utilities
 - `cn()`: Utility for conditionally merging Tailwind classes.
 - `supabase/server`: Helper to initialize SSR Supabase client with cookies.
+- `useSharedNotifications`: Notification hook using standard `SupabaseClient` for Vercel build compatibility.
 
 # 21. Constants
 - Pre-defined channel labels, emojis, statuses (`open`, `waiting_on_customer`, `resolved`, `closed`), and priorities (`low`, `normal`, `high`, `urgent`).
@@ -135,7 +137,7 @@
 - Build: `npm run build`
 
 # 24. Known Issues
-- None currently active. Realtime message syncing, deep-linking, PWA installability, and soft-delete features are verified clean.
+- None currently active. Realtime message syncing, deep-linking, PWA installability, system status events, and soft-delete features are verified clean.
 
 # 25. Future Roadmap
 - AI auto-summarization of tickets.
