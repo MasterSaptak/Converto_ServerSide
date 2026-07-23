@@ -82,7 +82,7 @@ export function SupportInbox({ initialConversations, currentUserId }: SupportInb
         .order('created_at', { ascending: true })
 
       if (data && data.length > 0) {
-        const senderIds = [...new Set(data.map(m => m.sender_id).filter(Boolean))];
+        const senderIds = [...new Set(data.map((m: any) => m.sender_id).filter(Boolean))];
         let avatarMap: Record<string, string> = {};
         
         if (senderIds.length > 0) {

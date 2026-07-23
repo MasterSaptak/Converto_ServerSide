@@ -1,274 +1,162 @@
-# CONTEXT.md - Converto Global Unified Platform
+# CONTEXT.md - Converto ServerSide (Admin Portal)
 
-This document serves as the complete long-term memory for the Converto Global project, encompassing both the Customer Portal (`Converto_UserSide`) and the Admin ERP (`Converto_ServerSide`). 
+# 1. Project Overview
+- **Purpose**: To provide a comprehensive backend and administrative interface for the Converto platform.
+- **Business goal**: Manage users, transactions, service requests, and live customer support securely and efficiently.
+- **Problem being solved**: Centralizing operations for a global financial, payment, shopping, and booking platform, allowing staff to manage operations via a unified dashboard.
+- **Target users**: Converto internal staff, administrators, and support agents.
+- **Current development status**: Active development. Key features like real-time support chat, notifications, and core routing are functional. Deployed on Vercel.
 
----
+# 2. Architecture
+- **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS.
+- **Backend**: Next.js Server Actions, API Routes.
+- **Database**: Supabase PostgreSQL.
+- **Storage**: Supabase Storage (Buckets for attachments/avatars).
+- **Authentication**: Supabase Auth with SSR cookies.
+- **Deployment & Hosting**: Vercel.
+- **Data Flow**: Admin performs an action (e.g., sends a message) -> Next.js Server Action is invoked -> Action executes Supabase RPC or direct insert -> Supabase triggers (or RPCs) generate notifications -> Realtime WebSockets broadcast updates to connected clients (Admin and User sides) -> UI optimistically updates.
 
-## 1. Project Overview
-- **Purpose**: A comprehensive fintech and service-fulfillment platform that allows users to request various financial and lifestyle services (Exchange, Flight Tickets, Medical Appointments, Buy For Me) and track their progress, while providing admins a powerful ERP to manage these requests via a dynamic pipeline.
-- **Business Goal**: Streamline international payments, service brokerage, and customer support into a single, automated, transparent portal.
-- **Problem Being Solved**: Traditional brokerage and concierge services are opaque and manually intensive. Converto automates workflows, ensures SLA compliance, and provides real-time customer transparency.
-- **Target Users**: 
-  - *End Users*: International customers needing concierge services, ticketing, and currency exchange.
-  - *Admins/Staff*: Customer support, financial operators, and super admins managing the fulfillment pipeline.
-- **Current Development Status**: Phase 4 of the Workflow Engine Migration is complete. Both customer tracking and admin kanban pipelines are fully operational.
+# 3. Folder Structure
+- `/app`: Next.js App Router root. Contains all pages, layouts, and API routes.
+- `/app/(admin)`: Protected group for admin routes. Groups routing logically without adding `(admin)` to the URL path.
+- `/components`: Reusable UI components (buttons, inputs, layouts, modals). Extracted to ensure DRY principles.
+- `/lib`: Utility functions, Supabase clients (`server.ts`, `client.ts`, `middleware.ts`), and animation configurations.
+- `/hooks`: Custom React hooks for state and lifecycle management (e.g., `useNotifications`).
+- `/public`: Static assets like images and manifest files.
 
----
-
-## 2. Architecture
-The architecture is split into two separate Next.js 15 App Router applications sharing a single Supabase backend.
-- **Frontend (Converto_UserSide)**: Next.js 15 App router. Handles customer onboarding, wallet management, and service request tracking.
-- **Backend/Admin (Converto_ServerSide)**: Next.js 15 App router. Acts as a secure ERP for internal staff to process requests. Server Actions are heavily utilized for mutations.
-- **Database**: PostgreSQL hosted on Supabase.
-- **Storage**: Supabase Storage (used for document uploads, identity verification).
-- **Authentication**: Supabase Auth (Email/Password & OTP).
-- **APIs**: Entirely serverless via Next.js Server Actions and Supabase RPCs/PostgREST.
-- **Deployment & Hosting**: Deployed on Vercel (Edge network).
-- **Data Flow**: User submits request -> Next.js Server Action writes to Supabase `service_requests` -> Workflow Engine (`lib/workflow-engine.ts`) evaluates rules/events -> Admin views via Kanban UI -> Admin updates status -> Workflow Engine evaluates rules (auto-generates tasks/SLAs) -> Customer sees updated status on UserSide.
-
----
-
-## 3. Folder Structure
-Both repositories follow a similar Next.js App Router structure:
-- `app/`: Contains all route segments. 
-  - `(admin)/` or `(auth)/`: Route groups to share layouts without affecting URL paths.
-  - `api/`: REST endpoints (mostly webhooks, as internal logic uses Server Actions).
-- `components/`: Reusable UI components.
-  - `ui/`: Base generic components (buttons, inputs, skeletons) built with Tailwind.
-  - `admin/` or `customer/`: Domain-specific components (e.g., Kanban boards, quote generators).
-- `lib/`: Core utilities and business logic.
-  - `supabase/`: Client and Server initialization for Supabase SSR.
-  - `workflow-engine.ts`: The central automation evaluator.
-  - `rbac.ts`: Role-based access control functions.
-- `hooks/`: React custom hooks (e.g., `useServiceRequests`, `useWalletTransactions`) for client-side data fetching.
-- `types/`: TypeScript definitions, notably `database.ts` (Supabase schema types).
-
----
-
-## 4. Technologies
-- **Next.js 15 (App Router)**: Framework for React. Used for SSR, Server Actions, and routing.
-- **React 19**: UI library.
-- **Tailwind CSS v3**: Utility-first styling. Used extensively for the Brutalist design system.
-- **Supabase (PostgreSQL)**: BaaS for Database, Auth, Storage, and Realtime.
-- **@supabase/ssr**: For secure cookie-based auth in Next.js Server Components.
+# 4. Technologies
+- **Next.js (15.x)**: Full-stack React framework for SSR and Server Actions.
+- **React (19.x)**: UI library.
+- **TypeScript**: Static typing for reliability.
+- **Tailwind CSS**: Utility-first CSS framework for rapid styling.
+- **Supabase JS / SSR**: Database, Auth, and Realtime WebSocket subscriptions.
+- **Framer Motion / Motion/React**: For fluid animations.
+- **Sonner / React-hot-toast**: For toast notifications.
 - **Lucide React**: Iconography.
-- **React Hot Toast**: Toast notifications.
 
----
+# 5. Environment Variables
+- `NEXT_PUBLIC_SUPABASE_URL`: URL to the Supabase instance. Used client and server-side.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Anonymous public key for Supabase. Used client and server-side.
+- `SUPABASE_SERVICE_ROLE_KEY`: Admin key that bypasses RLS. Used STRICTLY server-side for sensitive operations (e.g., creating conversations, bypassing read restrictions for system updates).
 
-## 5. Environment Variables
-- `NEXT_PUBLIC_SUPABASE_URL`: The URL of the Supabase project. Required for both client and server Supabase clients.
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: The anonymous API key for Supabase. Safe to expose to the browser.
-- `SUPABASE_SERVICE_ROLE_KEY`: (ServerSide only) Used for bypassing RLS in background jobs, webhooks, or the workflow engine. Never exposed to the client.
+# 6. Database
+- **profiles**: Stores user metadata (avatar, full name, role). RLS enabled.
+- **communication_conversations**: Chat threads. Columns: `id`, `subject`, `status`, `channel`, `last_message_at`.
+- **communication_messages**: Individual chat messages. Columns: `id`, `conversation_id`, `sender_id`, `text`, `visibility`.
+- **communication_participants**: Links users to conversations.
+- **notifications**: System and chat notifications. Triggered by database functions.
+- **service_requests & transactions**: Core operational tables for booking/finance tracking.
+- **Policies/RLS**: Strict RLS policies restrict row visibility. `service_role` key is used to bypass RLS when necessary (e.g., creating a conversation).
+- **RPCs/Triggers**: Functions like `fn_staff_send_chat_message` handle atomic inserts of messages and notifications.
 
----
+# 7. Authentication Flow
+- **Session**: Managed via Supabase SSR cookies.
+- **Middleware**: Intercepts all requests. Validates the session. If no session exists, redirects to `/login`. Admin routes verify the user's role/permissions.
+- **Protected Routes**: Everything under `/app/(admin)` is protected by middleware and server-side session checks.
 
-## 6. Database
-Key Tables:
-- `profiles`: Extends Supabase auth.users. Columns: `id`, `email`, `full_name`, `role` (Customer, Admin, Super Admin).
-- `wallets`: User balances. Columns: `id`, `profile_id`, `balance`, `currency`.
-- `wallet_transactions`: Ledger of credits/debits.
-- `services`: Defines available services (Flight, Exchange, etc).
-- `pipeline_stages`: High-level stages of fulfillment (e.g., Intake, Processing, Completed).
-- `pipeline_statuses`: Granular statuses under a stage (e.g., "Awaiting Payment", "Quote Sent"). Has `customer_visible` and `requires_customer_action` flags.
-- `service_requests`: The central entity. Columns: `id`, `profile_id`, `service_id`, `pipeline_stage_id`, `pipeline_status_id`, `metadata` (JSONB), `sla_deadline`.
-- `workflow_rules`: Defines conditions and actions (e.g., `move_status`, `create_tasks`) evaluated by the engine.
-- `workflow_events`: Webhooks/Notifications triggered by status changes.
-- `workflow_templates` & `workflow_template_tasks`: Standardized checklists auto-generated for specific services.
-- `request_tasks`, `request_flags`, `request_workflow_history`: Sub-entities linked to a `service_request` for tracking checklists, priority flags, and immutable audit logs.
+# 8. API Documentation
+- **Server Actions**: Primarily used instead of traditional REST APIs.
+  - `sendSupportMessage(convId, text, visibility)`: Sends a message via RPC or direct insert.
+  - `getInboxData()`: Fetches all open conversations for the admin dashboard.
+  - `fetchUserAvatars(ids)`: Retrieves profile pictures to attach to messages.
 
----
+# 9. Components
+- **SupportInbox**: Manages the list of active conversations.
+  - *Dependencies*: Supabase client, Realtime.
+  - *State*: List of conversations, active conversation ID.
+- **ChatWindow**: The actual messaging interface.
+  - *State*: Local messages, optimistic UI updates.
+  - *Lifecycle*: Subscribes to `postgres_changes` on mount, cleans up on unmount.
 
-## 7. Authentication Flow
-- **Provider**: Supabase Auth.
-- **Session Management**: Cookie-based via `@supabase/ssr` middleware (`middleware.ts`).
-- **Middleware**: Intercepts requests. If a user is not logged in, redirects to `/login`. If an admin tries to access a super-admin route, denies access.
-- **Authorization**: `lib/rbac.ts` provides `requireStaffRole(['Admin', 'Super Admin'])` which verifies the user's `role` from the `profiles` table before executing Server Actions or rendering Server Components.
+# 10. Pages
+- `/support`: The main helpdesk page. Renders `SupportInbox` and `ChatWindow`.
+- `/dashboard`: High-level metrics, active service requests, and transaction volumes.
+- `/users`: User management interface.
 
----
+# 11. State Management
+- **Local State**: `useState` for UI toggles (modals, active tabs).
+- **Realtime State**: Subscriptions to Supabase `postgres_changes` sync remote database state to local React state via `setMessages(prev => [...prev, newMsg])`.
+- **Caching**: Next.js App Router caching (`revalidatePath`).
 
-## 8. API Documentation
-Most data fetching and mutation is done via **Server Actions** rather than traditional REST APIs.
-- **`updateRequestStatus(id, new_status_id)`**: Server Action in Admin portal. Updates `service_requests`, logs to `request_workflow_history`, and invokes `evaluateWorkflowRules()` and `evaluateWorkflowEvents()`.
-- **`submitServiceRequest(payload)`**: Server Action in User portal. Creates a new row in `service_requests` and sets initial pipeline status.
+# 12. Business Logic
+- **Optimistic UI**: Chat messages appear instantly for the sender. The server request happens in the background. If it fails, the UI handles the error.
+- **Role-based visibility**: Messages have a `visibility` column. Internal notes are invisible to customers.
+- **Notification Routing**: Database triggers evaluate `target_role`. Notifications destined for 'customer' only trigger on the UserSide.
 
----
+# 13. Important Algorithms
+- **Message Deduplication**: When receiving a WebSocket payload, the system checks `if (prev.some(m => m.id === msg.id)) return prev;` to prevent rendering the same message twice.
+- **Toast Deduplication**: `sonner` is passed the notification `id` to prevent Strict Mode double-mounting from spawning multiple toasts.
 
-## 9. Components
-- **`Pipeline Board (kanban-board.tsx)`**: Renders horizontal stage filters and vertical request cards. Draggable/clickable interface for admins.
-- **`OrderTimeline`**: Renders the visual progression of a request.
-- **`RequestTasks`**: A checklist component for admins to tick off auto-generated template tasks.
-- **`WorkflowsTab`**: Admin settings UI to configure Pipeline Stages and Statuses.
+# 14. Configuration Files
+- `next.config.ts`: Next.js configuration.
+- `tailwind.config.ts`: Defines design tokens (colors, fonts).
+- `.eslintrc.json`: Enforces code quality (strict no-explicit-any).
+- `package.json`: Dependency management.
 
----
+# 15. Build Process
+- Executed via `npm run build` / `next build`.
+- Compiles TypeScript, runs ESLint (which is strict and will fail on `any` types), builds server and client components, and outputs to `.next`.
+- Deployed on Vercel.
 
-## 10. Pages
-- **UserSide `/track`**: Displays the active status of user requests. Masks non-customer-visible statuses as "Processing".
-- **UserSide `/history`**: Merges `wallet_transactions` and `service_requests` into a unified activity feed.
-- **ServerSide `/requests`**: The Kanban dashboard for admins.
-- **ServerSide `/requests/[id]`**: Deep-dive into a request. Contains metadata forms, task lists, flags, and the pipeline progression action panel.
-- **ServerSide `/settings`**: Super Admin configuration (General, Security, AI, Workflows).
+# 16. Third-party Services
+- **Supabase**: Auth, PostgreSQL, Realtime WebSockets, Storage.
+- **Vercel**: Edge network deployment and CI/CD.
 
----
+# 17. Error Handling
+- **Server Actions**: Wrapped in `try/catch`. Return `{ error: string }` instead of throwing, allowing the client to render the error gracefully.
+- **UI**: Toast notifications display errors to the staff.
 
-## 11. State Management
-- **Global State**: Supabase Database serves as the single source of truth.
-- **Local State**: React `useState` and `useMemo` for filtering/sorting (e.g., search bars, Kanban filtering).
-- **Caching**: Next.js App Router Data Cache is used. Revalidation is triggered via `revalidatePath('/requests')` inside Server Actions after mutations.
+# 18. Security
+- **RLS**: Row Level Security ensures users can only access their own data.
+- **Server-side validation**: Never trust the client. Server actions re-verify user identity via `supabase.auth.getUser()`.
+- **Secrets**: API keys are securely stored in Vercel environment variables.
 
----
+# 19. Performance
+- **Image Optimization**: Use of Next.js `<Image />` where possible.
+- **Non-blocking Realtime**: Realtime listeners push text payloads to the UI instantly, and fetch avatars asynchronously in the background so the UI doesn't stutter.
 
-## 12. Business Logic
-- **Status Masking**: If a pipeline status is marked `customer_visible: false`, the customer portal MUST render it as "Processing" (or just the Stage Name) to hide internal operations.
-- **Automation Engine**: When a request status changes, the system checks `workflow_rules`. If a rule matches the new status, it executes the action (e.g., updating SLA deadlines, auto-transitioning, or copying `workflow_template_tasks` into `request_tasks`).
-- **Brutalist Design**: UI must adhere to thick borders (`border-2 border-black`), sharp corners (`rounded-none`), heavy typography (`font-black uppercase`), and high contrast colors.
+# 20. Reusable Utilities
+- `cn()`: Utility for conditionally merging Tailwind classes (`clsx` + `tailwind-merge`).
+- `supabase/server`: Helper to initialize SSR Supabase client with cookies.
 
----
+# 21. Constants
+- Pre-defined categories and statuses for conversations (`open`, `resolved`, etc.).
 
-## 13. Important Algorithms
-- **Workflow Evaluator (`lib/workflow-engine.ts`)**:
-  - *Input*: `requestId`, `newStatusId`
-  - *Logic*: Queries `workflow_rules` where `current_status_id = newStatusId`. Iterates rules. If condition passes, executes `action_type`. If `action_type === 'create_tasks'`, fetches `workflow_templates` for the service and inserts `request_tasks`.
-  - *Edge Cases*: Prevents infinite loops by breaking after a `move_status` auto-transition.
+# 22. Types
+- `ChatMessage`: `id`, `sender_id`, `text`, `visibility`, `created_at`.
+- `Notification`: `id`, `profile_id`, `message`, `action_url`.
 
----
+# 23. Development Workflow
+- Start: `npm run dev`
+- Build: `npm run build`
+- Commits pushed to `main` auto-deploy to Vercel.
 
-## 14. Design System & Thematic Guidelines (STRICTLY ENFORCED)
-**Crucial Context for AI Assistants**: The Converto platform uses a **Brutalist UI Design System**. You MUST NOT attempt to "modernize", "soften", or change this theme to standard SaaS designs (like Tailwind's default rounded styles, soft shadows, or generic corporate aesthetics). 
-- **Borders**: Elements MUST have thick, hard borders (e.g., `border-2 border-black` or `border-4 border-black`).
-- **Shadows**: Use hard, unblurred drop shadows to create a retro/brutalist 3D effect (e.g., `shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`). Do NOT use standard `shadow-md` or `shadow-lg` which blur the shadow.
-- **Corners**: Everything MUST have sharp edges. Use `rounded-none`. Do NOT use `rounded-md` or `rounded-lg`.
-- **Typography**: Heavily utilize bold, uppercase fonts for headers and important text (`font-black uppercase tracking-widest`).
-- **Colors**: Use high-contrast colors (stark blacks, stark whites, and vibrant pop colors like bright pink/magenta `#FF90E8`, bright yellow). Avoid soft pastels.
-- **Micro-interactions**: Buttons should depress mechanically on click (e.g., `active:translate-x-[2px] active:translate-y-[2px] active:shadow-none`).
-If you add new UI components, you MUST conform exactly to this brutalist design language.
+# 24. Known Issues
+- Realtime channels can occasionally duplicate in dev mode due to React Strict Mode (resolved globally via toast IDs).
+- RPC fallbacks are currently in use because `fn_staff_send_chat_message` hardcodes `/support` instead of `/support?chat=open`.
 
----
+# 25. Future Roadmap
+- AI auto-summarization of tickets.
+- Analytics dashboard for support agent response times.
 
-## 15. Configuration Files
-- `tailwind.config.ts`: Defines the Brutalist theme (colors, fonts).
-- `next.config.mjs`: Next.js config.
-- `middleware.ts`: Secures routes via Supabase SSR.
-- `components.json`: Shadcn UI config (used as a base, but heavily modified for Brutalism).
+# 26. Developer Decisions
+- **Bypassing RLS for Conversation Creation**: Used `SUPABASE_SERVICE_ROLE_KEY` to securely create conversations because the chicken-and-egg problem of RLS prevents users from selecting a conversation before they are added as a participant.
+- **Asynchronous Avatars**: Dropped `await` from avatar fetching in websocket callbacks to ensure 0ms latency on incoming messages.
 
----
+# 27. Coding Conventions
+- **Naming**: camelCase for variables, PascalCase for components, kebab-case for files.
+- **Imports**: Absolute imports with `@/` alias.
+- **Style**: Strict TypeScript (no `any`).
 
-## 15. Build Process
-- Standard Next.js build: `npm run build` runs `next build`.
-- Outputs optimized static HTML and Serverless Functions for dynamic routes.
-- Deployed seamlessly to Vercel via Git integration.
+# 28. Dependencies Between Modules
+- `SupportInbox` relies on `ChatWindow` for rendering the active conversation. Both rely heavily on `actions.ts`.
 
----
+# 29. Critical Files
+- `app/(admin)/support/actions.ts`: Contains the core logic for the helpdesk.
+- `lib/supabase/middleware.ts`: Secures the entire application.
 
-## 16. Third-party Services
-- **Supabase**: Core backend infrastructure.
-- **Vercel**: Edge hosting and CI/CD.
-- *(Planned)*: Stripe/Crypto gateways for Wallet funding.
-- *(Planned)*: WhatsApp Business API / SendGrid for `workflow_events`.
-
----
-
-## 17. Error Handling
-- **Frontend**: React Error Boundaries (`error.tsx` in Next.js).
-- **Server Actions**: Try/Catch blocks returning `{ error: string }` which are surfaced to the user via `react-hot-toast`.
-- **Database**: Supabase RLS policies block unauthorized reads/writes at the Postgres level.
-
----
-
-## 18. Security
-- **RLS (Row Level Security)**: Postgres policies ensure users can only `SELECT` their own `service_requests`, `wallets`, and `request_tasks`.
-- **RBAC**: `requireStaffRole` ensures only designated admins can access `/requests` or `/settings`.
-- **Validation**: Server Actions validate payloads before inserting into the DB.
-
----
-
-## 19. Performance
-- **Server Components**: Used by default to reduce JS bundle size.
-- **Next.js Caching**: Pages are cached and only invalidated via `revalidatePath` when a mutation occurs.
-- **Image Optimization**: Next.js `<Image>` component used for avatars and document previews.
-
----
-
-## 20. Reusable Utilities
-- `lib/utils.ts`: Contains `cn()` (clsx + tailwind-merge) for dynamic class names.
-- `hooks/useServiceRequests.ts`: Custom hook to fetch and subscribe to user requests.
-
----
-
-## 21. Constants
-- Predefined Service Slugs: `exchange`, `buy_for_me`, `ticket`, `education`, `global_payments`, `medical`. Used for conditional rendering of specific quote/metadata UI components.
-
----
-
-## 22. Types
-- `ServiceRequest`: The core interface representing a user's request.
-- `ExtendedRequest`: Used in the customer portal to properly type the joined `status_obj` and `stage` relations.
-- `PipelineStage` / `PipelineStatus`: Types defining the state machine.
-
----
-
-## 23. Development Workflow
-- `npm run dev` starts the local Next.js server.
-- Database changes are managed via Supabase SQL Editor or local migrations.
-- **Debugging**: Server Action logs appear in the terminal, client logs in the browser console.
-
----
-
-## 24. Known Issues & TODOs
-- **Workflow Evaluator Conditions**: Currently, `condition_expression` parsing is simplistic. Needs a robust parser (like JSONata or Jexl) for complex logical evaluations.
-- **Webhooks**: `evaluateWorkflowEvents` currently just logs history. Needs actual integration with Email/SMS providers.
-- **Drag-and-Drop**: The Pipeline Admin UI is currently click-based; react-beautiful-dnd or dnd-kit should be fully wired up for dragging request cards between columns.
-
----
-
-## 25. Future Roadmap
-- Implementation of external API integrations for automated flight bookings and FX rates.
-- Deep AI integration for "Smart Categorization" and "Automated Smart Quotes" (flags exist in settings).
-- Advanced Analytics dashboard tracking SLA breaches and agent performance.
-
----
-
-## 26. Developer Decisions
-- **Why Server Actions over API Routes?** Reduces boilerplate, provides end-to-end type safety, and integrates perfectly with Next.js App Router caching (`revalidatePath`).
-- **Why a Dynamic Pipeline instead of Hardcoded Statuses?** Converto handles wildly different services (Medical Tourism vs. Flight Tickets). A hardcoded status enum would break. The `pipeline_stages` architecture allows service-specific workflows.
-- **Why Brutalist UI?** To stand out in the fintech space. It conveys robustness, transparency, and raw utility.
-
----
-
-## 27. Coding Conventions
-- **Naming**: `camelCase` for variables/functions, `kebab-case` for file names (e.g., `kanban-board.tsx`), `PascalCase` for React components.
-- **Imports**: Absolute imports using `@/` alias.
-- **Styling**: Tailwind utility classes directly in the `className` prop, utilizing `cn()` for dynamic merging.
-- **Architecture**: Keep data fetching as close to the component as possible (Server Components preferred).
-
----
-
-## 28. Dependencies Between Modules
-- The Customer Portal (`Converto_UserSide`) relies strictly on the database schema defined and managed by the Admin ERP (`Converto_ServerSide`). 
-- Changing `pipeline_statuses` in the Admin settings instantly updates the tracked statuses in the User portal.
-
----
-
-## 29. Critical Files
-- `lib/workflow-engine.ts`: The brain of the automation system. Do not modify without thorough testing.
-- `app/(admin)/requests/[id]/page.tsx`: The heart of request processing for admins.
-- `middleware.ts`: Secures both applications.
-- `scratch/workflow_engine_migration.sql`: Contains the foundational schema for the state machine.
-
----
-
-## 30. AI Continuation Notes
-**Instructions for Future AI Assistants:**
-- **Current Architecture**: We are using Next.js 15 App Router with Supabase. You are operating in a monorepo-like environment with two distinct folders: `Converto_UserSide` and `Converto_ServerSide`.
-- **Important Invariants**: 
-  1. NEVER expose `customer_visible = false` statuses to the user. Always fall back to "Processing" or the Stage name.
-  2. **CRITICAL: STRICT DESIGN THEME MAINTENANCE**: Maintain the Brutalist design language AT ALL TIMES (`border-2 border-black font-black uppercase rounded-none`). Avoid generic rounded, soft UI elements. Never implement Tailwind defaults like `rounded-md`, `shadow-md`. The purpose of this `CONTEXT.md` is to ensure you remember not to break the core brutalist aesthetics and the established architecture when fulfilling future feature requests.
-- **Expected Coding Style**: Prioritize Server Components. Use Server Actions for mutations. Use `revalidatePath` to update UI post-mutation.
-- **How to Refactor**: Ensure Supabase database types (`types/database.ts`) remain in sync if you alter schemas. 
-- **Hidden Relationships**: The `metadata` JSONB column in `service_requests` is highly polymorphic. Its shape depends entirely on the `service_id`/`service_slug`. Always check the slug before accessing metadata properties.
-- **Next Steps**: When resuming, you will likely be expanding `lib/workflow-engine.ts` to execute real HTTP webhooks, or building out the AI smart quoting features toggled in the settings page.
-
----
-
-## 31. Recent Updates
-- **Removed Support Service**: The "Support & Help" service (slug: `support`) was explicitly filtered out and removed from the UserSide `/services` page rendering.
+# 30. AI Continuation Notes
+- **DO NOT USE `any` IN TYPESCRIPT**. ESLint will fail the Vercel build. Use `unknown` or define specific types/Records.
+- Always use `createAdminClient` ONLY in secure Server Actions when you explicitly need to bypass RLS (e.g., creating relational records before permissions apply).
+- Never block a realtime WebSocket listener with synchronous `await` calls for supplementary data (like avatars); do it asynchronously.
+- Ensure toast notifications are passed a unique `id` to prevent Strict Mode dev duplicates.
